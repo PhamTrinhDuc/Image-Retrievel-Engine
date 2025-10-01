@@ -12,3 +12,4 @@ for sub_folder in os.listdir(folder_path):
     images_path.extend(image_list)
 
 print(len(images_path))
+
