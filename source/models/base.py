@@ -21,7 +21,6 @@ class BaseFeatureExtractor(ABC):
     self.model_name = model_name
     self.device = device
     self.model = None
-    self.is_loaded = False
   
   @abstractmethod
   def load_model(self) -> None:
@@ -67,8 +66,6 @@ class BaseFeatureExtractor(ABC):
         Returns:
             Feature embedding as numpy array
         """
-        if not self.is_loaded:
-            self.load_model()
             
         preprocessed_data = self.preprocess(data)
         features = self.extract_features(preprocessed_data)
@@ -126,7 +123,6 @@ class BaseFeatureExtractor(ABC):
           "model_name": self.model_name,
           "device": self.device,
           "feature_dim": self.feature_dim,
-          "is_loaded": self.is_loaded
       }
   
   def __repr__(self) -> str:
