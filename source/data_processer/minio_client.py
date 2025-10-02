@@ -70,3 +70,69 @@ class MinioClient:
         return (image_path, True, object_name)
     except Exception as e:
         return (image_path, False, str(e))
+  
+  def get_categories(self) -> list[str]:
+    """Get list of all categories"""
+    categories = set()
+    
+    try:
+      # List all objects in the bucket with 'images/' prefix
+      objects = self.client.list_objects(
+        bucket_name=self.bucket_name, 
+        prefix="images/", 
+        recursive=False
+      )
+      
+      for obj in objects:
+        if obj.is_dir:  
+          category = obj.object_name.split("/")[-2] 
+          categories.add(category)
+
+      return categories
+    
+    except Exception as e: 
+       print(f"Error get list categories: {str(e)}")
+       pass
+
+  def get_images_in_category(self, category: str) -> list[str]:
+    """Get all images in a specific category"""
+    try:
+      objects = self.client.list_objects(
+          bucket_name=self.bucket_name,
+          prefix=f"images/{category}/",
+          recursive=True
+      )
+      
+      images = []
+      for obj in objects:
+          # Only add actual files, not folders
+          if obj.object_name.endswith(('.jpg', '.jpeg', '.png')):
+              images.append(obj.object_name)
+        
+      return sorted(images)
+    except Exception as e:
+      print(f"Error getting images for category {category}: {e}")
+      return []
+
+  def get_image_url(self, object_name: str, expires_in_seconds: int = 3600) -> str:
+    """
+    Generate presigned URL for an image
+    
+    Args:
+        object_name: Path to the image in MinIO (e.g., 'images/A/img1.jpg')
+        expires_in_seconds: URL expiration time in seconds (default 1 hour)
+    
+    Returns:
+        str: Presigned URL for the image
+    """
+    try:
+        from datetime import timedelta
+        url = self.client.presigned_get_object(
+            bucket_name=self.bucket_name,
+            object_name=object_name,
+            expires=timedelta(seconds=expires_in_seconds)
+        )
+        return url
+    except Exception as e:
+        print(f"Error generating URL for {object_name}: {e}")
+        return ""
