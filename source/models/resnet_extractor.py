@@ -10,7 +10,7 @@ from typing import Union, Any, List, Optional, Dict
 from timm.data.transforms_factory import create_transform
 from timm.data.config import resolve_data_config
 import warnings
-from base import ImageFeatureExtractor
+from models.base import ImageFeatureExtractor
 from utils.helpers import create_logger
 
 
