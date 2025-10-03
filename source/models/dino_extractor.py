@@ -2,57 +2,61 @@ import os
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
+
 import timm
 import torch
 from models.base import ImageFeatureExtractor
 
 
-class VGGExtractor(ImageFeatureExtractor): 
-    """VGG feature extractor with batch processing and projection layer."""
+class DINOv2Extractor(ImageFeatureExtractor): 
+    """DINOv2 feature extractor with batch processing."""
     
-    # Supported VGG models with their feature dimensions
+    # Supported DINOv2 models with their feature dimensions
     SUPPORTED_MODELS = {
-        'vgg11': 4096,
-        'vgg13': 4096,
-        'vgg16': 4096,
-        'vgg19': 4096,
-        'vgg11_bn': 4096,
-        'vgg13_bn': 4096,
-        'vgg16_bn': 4096,
-        'vgg19_bn': 4096
+        'dinov2_vits14': 384,
+        'dinov2_vitb14': 768,
+        'dinov2_vitl14': 1024,
+        'dinov2_vitg14': 1536,
+        'dinov2_vits14_reg': 384,
+        'dinov2_vitb14_reg': 768,
+        'dinov2_vitl14_reg': 1024,
+        'dinov2_vitg14_reg': 1536
     }
+
+    JOB_NAME = "dinov2_extractor"
     
     def __init__(self, 
-                 model_name: str = "vgg16", 
+                 model_name: str = "dinov2_vitb14", 
                  device: str = "cpu",
                  batch_size: int = 16,
-                 embed_dim: int = 768,
+                 embed_dim: int=768,
                  enable_mixed_precision: bool = False): 
         """
-        Initialize VGG feature extractor with enhanced capabilities.
+        Initialize DINOv2 feature extractor with enhanced capabilities.
         
         Args:
-            model_name: VGG model variant to use (vgg11, vgg13, vgg16, vgg19, with/without bn)
+            model_name: DINOv2 model variant to use
             device: Device for computation ('cpu', 'cuda', 'cuda:0', etc.)
             batch_size: Default batch size for batch processing
-            embed_dim: Output embedding dimension after projection
+            embed_dim: Output embedding dimension
             enable_mixed_precision: Use automatic mixed precision (AMP)
         """
         super().__init__(model_name=model_name, 
-                         device=device, 
                          batch_size=batch_size, 
+                         device=device, 
                          embed_dim=embed_dim, 
                          enable_mixed_precision=enable_mixed_precision)
-
+        
+       
     def load_model(self) -> torch.nn.Module:
-      """Load pretrained VGG model with validation."""
+      """Load pretrained DINOv2 model with validation."""
       try:
-        self.logger.info(f"Loading VGG model: {self.model_name}")
+        self.logger.info(f"Loading model: {self.model_name}")
         model = timm.create_model(
             model_name=self.model_name, 
             pretrained=True, 
             num_classes=0,  # Remove classification head
-            global_pool="avg",  # Global average pooling
+            global_pool="token",  # Use CLS token for DINOv2
             drop_rate=0.0  # Disable dropout for inference
         )
         
@@ -61,7 +65,7 @@ class VGGExtractor(ImageFeatureExtractor):
         with torch.no_grad():
             test_output = model(test_input)
         
-        expected_dim = self.SUPPORTED_MODELS.get(self.model_name, 4096)
+        expected_dim = self.SUPPORTED_MODELS.get(self.model_name, 768)
         actual_dim = test_output.shape[-1]
         
         if actual_dim != expected_dim:
