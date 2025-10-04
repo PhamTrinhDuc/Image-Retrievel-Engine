@@ -6,7 +6,7 @@ import numpy as np
 from pymilvus import Collection, connections, FieldSchema, CollectionSchema, DataType, utility
 from typing import List, Dict, Any, Optional
 from utils.helpers import create_logger
-from vector_db.base import BaseVectorDB
+from source.base.base_vdb import BaseVectorDB
 
 
 class MilvusClient(BaseVectorDB): 
@@ -49,6 +49,11 @@ class MilvusClient(BaseVectorDB):
         description: Collection description
     """
     try: 
+      if utility.has_collection(self.collection_name):
+          self.logger.warning(f"Collection '{self.collection_name}' already exists. Reloading it")
+          self.collection = Collection(self.collection_name)
+          return
+
       fields = [
         FieldSchema(name="id", dtype=DataType.INT64, is_primary=True, auto_id=True), 
         FieldSchema(name="image_path", dtype=DataType.VARCHAR, max_length=500), 
@@ -200,13 +205,9 @@ class MilvusClient(BaseVectorDB):
           collection_info["is_loaded"] = utility.loading_progress(self.collection_name)
       except Exception:
           collection_info["is_loaded"] = "Unknown"
-      
-      # Check fields 
-      try: 
-        collection_info['fields'] = self.collection.schema
-      except Exception: 
-         collection_info['schema'] = "Unknown"
-      
+
+      collection_info.update(self.collection.describe())
+
       return collection_info
       
     except Exception as e:
