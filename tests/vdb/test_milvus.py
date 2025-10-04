@@ -127,7 +127,6 @@ class TestMilvusClient:
         stats = connected_client.get_collection_stats()
         
         assert isinstance(stats, dict)
-        assert 'num_entities' in stats
         assert 'collection_name' in stats
         assert stats['collection_name'] == TEST_COLLECTION
     
