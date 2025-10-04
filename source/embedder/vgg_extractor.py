@@ -4,7 +4,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 import timm
 import torch
-from models.base import ImageFeatureExtractor
+from base.base_embedder import ImageFeatureExtractor
 
 
 class VGGExtractor(ImageFeatureExtractor): 
