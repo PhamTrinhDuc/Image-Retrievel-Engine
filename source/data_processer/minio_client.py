@@ -55,22 +55,6 @@ class MinioClient:
     except Exception as e:
         return (image_path, False, str(e))
   
-  def upload_image_simple(self, image_path: str):
-    """Upload image with just filename (no folder structure)"""
-    filename = os.path.basename(image_path)
-    object_name = f"images/{filename}"
-    
-    try:
-        self.client.fput_object(
-            bucket_name=self.bucket_name, 
-            object_name=object_name, 
-            file_path=image_path,
-            content_type="image/jpeg"
-        )
-        return (image_path, True, object_name)
-    except Exception as e:
-        return (image_path, False, str(e))
-  
   def get_categories(self) -> list[str]:
     """Get list of all categories"""
     categories = set()
