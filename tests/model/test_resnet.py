@@ -5,10 +5,11 @@ Simplified unit tests for the ResNetExtractor.
 import os
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 import pytest
 import numpy as np
 from PIL import Image
-from source.models import ResNetExtractor
+from source.embedder import ResNetExtractor
 
 class TestResNetExtractor:
     """Simplified test suite for ResNetExtractor."""

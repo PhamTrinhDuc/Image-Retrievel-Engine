@@ -8,7 +8,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 import pytest
 import numpy as np
 from PIL import Image
-from source.models import ViTExtractor
+from source.embedder import ViTExtractor
 
 class TestViTExtractor:
     """Simplified test suite for ViTExtractor."""
