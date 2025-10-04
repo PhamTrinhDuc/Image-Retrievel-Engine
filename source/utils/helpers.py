@@ -11,7 +11,7 @@ def create_logger(job_name: str):
       - If ENV=dev  -> log to console
       - If ENV=prod -> log to file
     """
-    env = os.getenv("ENVIROMENT_LOG", "dev")  # mặc định dev
+    env = os.getenv("ENVIRONMENT_LOG", "dev")  # mặc định dev
     logger.remove()
 
     log_format = (
