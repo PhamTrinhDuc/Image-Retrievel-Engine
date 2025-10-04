@@ -3,6 +3,8 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 from abc import ABC, abstractmethod
+import requests
+from io import BytesIO
 import numpy as np
 from typing import Union, List, Any, Optional
 import torch
@@ -214,7 +216,13 @@ class ImageFeatureExtractor(BaseFeatureExtractor):
           PIL Image object
       """
       if isinstance(image_input, str):
-          return Image.open(image_input).convert('RGB')
+        if not os.path.exists(image_input) and image_input.startswith("http"):
+          resp = requests.get(image_input) # because url from minio
+          img = Image.open(BytesIO(resp.content))
+        else: 
+          img = Image.open(image_input)
+
+        return img.convert('RGB')
       elif isinstance(image_input, Image.Image):
           return image_input.convert('RGB')
       elif isinstance(image_input, np.ndarray):
