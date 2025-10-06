@@ -28,7 +28,6 @@ class ResNetExtractor(ImageFeatureExtractor):
                  model_name: str = "resnet34", 
                  device: str = "cpu",
                  batch_size: int = 16,
-                 embed_dim: int=768,
                  enable_mixed_precision: bool = False): 
         """
         Initialize ResNet feature extractor with enhanced capabilities.
@@ -44,7 +43,6 @@ class ResNetExtractor(ImageFeatureExtractor):
         super().__init__(model_name=model_name, 
                          device=device, 
                          batch_size=batch_size, 
-                         embed_dim=embed_dim, 
                          enable_mixed_precision=enable_mixed_precision)
        
     def load_model(self) -> torch.nn.Module:

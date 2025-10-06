@@ -26,7 +26,6 @@ class VGGExtractor(ImageFeatureExtractor):
                  model_name: str = "vgg16", 
                  device: str = "cpu",
                  batch_size: int = 16,
-                 embed_dim: int = 768,
                  enable_mixed_precision: bool = False): 
         """
         Initialize VGG feature extractor with enhanced capabilities.
@@ -35,13 +34,11 @@ class VGGExtractor(ImageFeatureExtractor):
             model_name: VGG model variant to use (vgg11, vgg13, vgg16, vgg19, with/without bn)
             device: Device for computation ('cpu', 'cuda', 'cuda:0', etc.)
             batch_size: Default batch size for batch processing
-            embed_dim: Output embedding dimension after projection
             enable_mixed_precision: Use automatic mixed precision (AMP)
         """
         super().__init__(model_name=model_name, 
                          device=device, 
                          batch_size=batch_size, 
-                         embed_dim=embed_dim, 
                          enable_mixed_precision=enable_mixed_precision)
 
     def load_model(self) -> torch.nn.Module:

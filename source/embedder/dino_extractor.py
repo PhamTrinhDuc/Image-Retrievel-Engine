@@ -29,7 +29,6 @@ class DINOv2Extractor(ImageFeatureExtractor):
                  model_name: str = "dinov2_vitb14", 
                  device: str = "cpu",
                  batch_size: int = 16,
-                 embed_dim: int=768,
                  enable_mixed_precision: bool = False): 
         """
         Initialize DINOv2 feature extractor with enhanced capabilities.
@@ -38,13 +37,11 @@ class DINOv2Extractor(ImageFeatureExtractor):
             model_name: DINOv2 model variant to use
             device: Device for computation ('cpu', 'cuda', 'cuda:0', etc.)
             batch_size: Default batch size for batch processing
-            embed_dim: Output embedding dimension
             enable_mixed_precision: Use automatic mixed precision (AMP)
         """
         super().__init__(model_name=model_name, 
                          batch_size=batch_size, 
                          device=device, 
-                         embed_dim=embed_dim, 
                          enable_mixed_precision=enable_mixed_precision)
         
        
