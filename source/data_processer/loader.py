@@ -2,12 +2,13 @@ import os
 import sys
 import glob
 import time
+from PIL import Image
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from tqdm import tqdm
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 from utils.helpers import create_logger
-from minio_client import MinioClient
+from data_processer.minio_client import MinioClient
 
 
 logger = create_logger("data_loader")
@@ -24,28 +25,29 @@ class DataLoader:
     # ----------------------
     # File discovery
     # ----------------------
-    def get_all_images(self, subfolders=None):
-        """Get all images from given folder(s)"""
-        if subfolders is None:
-            subfolders = ["train", "val"]
+    def get_all_images(self) -> list[str]:
+      list_animals = []
+      animal_images = {}
+      list_images = []
 
-        image_paths = []
-        extensions = ["*.jpg", "*.jpeg", "*.png", "*.bmp", "*.webp"]
+      for animal in os.listdir(self.source_folder): 
+        path = os.path.join(self.source_folder, animal)
+        animal_path = []
+        for img in os.listdir(path):
+          image_path = os.path.join(path, img)
+          w, h = Image.open(image_path).size
+          if h > 1500 or w > 1500:
+            continue
+          if h < 150 or w < 150:
+            continue
+          animal_path.append(image_path)
 
-        for subfolder in subfolders:
-            subfolder_path = os.path.join(self.source_folder, subfolder)
-            if os.path.exists(subfolder_path):
-                for ext in extensions:
-                    # Lowercase
-                    images = glob.glob(os.path.join(subfolder_path, "**", ext), recursive=True)
-                    # Uppercase
-                    images.extend(glob.glob(os.path.join(subfolder_path, "**", ext.upper()), recursive=True))
-                    image_paths.extend(images)
+        # list_animals.append(animal)
+        # animal_images[animal] = animal_path
+        list_images.extend(animal_path)
+      logger.info(f"Found {len(list_images)} images in {len(list_animals)} categories")
 
-                logger.info(f"Found {len([p for p in image_paths if subfolder in p])} images in {subfolder}")
-
-        logger.info(f"Total images found: {len(image_paths)}")
-        return image_paths
+      return list_images
 
     # ----------------------
     # Upload helpers
