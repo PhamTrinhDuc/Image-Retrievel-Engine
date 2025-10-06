@@ -4,8 +4,8 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 from data_processer.loader import DataLoader
 
-SOURCE_FOLDER = "/mnt/c/Users/Admin/Downloads/archive/ECOMMERCE_PRODUCT_IMAGES"
-BUCKET_NAME = "ecommerce-product-images"
+SOURCE_FOLDER = "/mnt/c/Users/Admin/Downloads/archive/animals/animals"
+BUCKET_NAME = "animal-images"
 MAX_WORKERS = 8
 BATCH_SIZE = 50
 
