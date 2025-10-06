@@ -20,7 +20,6 @@ class TestDINOv2Extractor:
         return DINOv2Extractor(
             model_name="dinov2_vitb14",  # Use smaller model for faster tests
             device="cpu",
-            embed_dim=768,
             batch_size=4
         )
 
@@ -45,7 +44,6 @@ class TestDINOv2Extractor:
         assert extractor.device == "cpu"
         assert extractor.batch_size == 4
         assert extractor.feature_dim['model_dim'] == 768
-        assert extractor.feature_dim['projection_dim'] == 768
 
     def test_single_image_processing(self, extractor, sample_image):
         """Test single image feature extraction."""

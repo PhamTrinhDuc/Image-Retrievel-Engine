@@ -20,7 +20,6 @@ class TestResNetExtractor:
         return ResNetExtractor(
             model_name="resnet18",  # Use smaller model for faster tests
             device="cpu",
-            embed_dim=768,
             batch_size=4
         )
 
@@ -45,7 +44,6 @@ class TestResNetExtractor:
         assert extractor.device == "cpu"
         assert extractor.batch_size == 4
         assert extractor.feature_dim['model_dim'] == 512
-        assert extractor.feature_dim['projection_dim'] == 768
 
     def test_single_image_processing(self, extractor, sample_image):
         """Test single image feature extraction."""

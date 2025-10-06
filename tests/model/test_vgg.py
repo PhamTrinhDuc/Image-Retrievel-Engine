@@ -33,7 +33,6 @@ class TestVGGExtractor:
         assert extractor.model_name == "vgg16"
         assert extractor.device == "cpu"
         assert extractor.feature_dim['model_dim'] == 4096
-        assert extractor.feature_dim['projection_dim'] == 768
 
     def test_single_image_processing(self, extractor, sample_image):
         """Test single image feature extraction."""
