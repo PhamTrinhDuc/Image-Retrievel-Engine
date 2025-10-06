@@ -26,28 +26,24 @@ class ImageRetriever:
             'model_name': 'resnet34',
             'device': 'cpu',
             'batch_size': 1,  # Smaller batch for inference
-            'embed_dim': 768,
             'enable_mixed_precision': False
         },
         'vgg': {
             'model_name': 'vgg16',
             'device': 'cpu',
             'batch_size': 1,
-            'embed_dim': 768,
             'enable_mixed_precision': False
         },
         'vit': {
             'model_name': 'vit_base_patch16_224',
             'device': 'cpu',
             'batch_size': 1,
-            'embed_dim': 768,
             'enable_mixed_precision': False
         },
         'dinov2': {
             'model_name': 'dinov2_vitb14',
             'device': 'cpu',
             'batch_size': 1,
-            'embed_dim': 768,
             'enable_mixed_precision': False
         }
     }
@@ -282,6 +278,7 @@ class ImageRetriever:
             # Extract query embedding
             query_embedding = self.extract_query_embedding(query_input)
             if query_embedding is None:
+                self.logger.error("Failed to get query embedding")
                 return []
             
             

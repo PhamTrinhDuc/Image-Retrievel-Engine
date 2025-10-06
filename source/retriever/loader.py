@@ -22,28 +22,24 @@ class ImageEmbeddingLoader:
             'model_name': 'resnet34',
             'device': 'cpu',
             'batch_size': 32,
-            'embed_dim': 768,
             'enable_mixed_precision': False
         },
         'vgg': {
             'model_name': 'vgg16',
             'device': 'cpu',
             'batch_size': 32,
-            'embed_dim': 768,
             'enable_mixed_precision': False
         },
         'vit': {
             'model_name': 'vit_base_patch16_224',
             'device': 'cpu',
             'batch_size': 16,
-            'embed_dim': 768,
             'enable_mixed_precision': False
         },
         'dinov2': {
             'model_name': 'dinov2_vitb14',
             'device': 'cpu',
             'batch_size': 16,
-            'embed_dim': 768,
             'enable_mixed_precision': False
         }
     }
@@ -213,13 +209,7 @@ class ImageEmbeddingLoader:
     
     def _get_feature_dimension(self) -> int:
         """Get the feature dimension from the extractor."""
-        if hasattr(self.extractor, 'feature_dim'):
-            if isinstance(self.extractor.feature_dim, dict):
-                return self.extractor.feature_dim.get('projection_dim', 
-                    self.extractor_config.get('embed_dim', 768))
-            else:
-                return self.extractor.feature_dim
-        return self.extractor_config.get('embed_dim', 768)
+        return self.extractor.feature_dim.get('model_dim')
     
     def load_single_image(self, 
                          image_path: Union[str, Path],
@@ -362,7 +352,6 @@ def example_loader_usage():
         'model_name': 'dinov2_vitb14',
         'device': 'cpu',  # or 'cuda' if GPU available
         'batch_size': 8,
-        'embed_dim': 768,
         'enable_mixed_precision': False
     }
     
