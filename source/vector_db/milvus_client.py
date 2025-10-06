@@ -64,7 +64,7 @@ class MilvusClient(BaseVectorDB):
       self.collection = Collection(name=self.collection_name, schema=schema)
 
       index_params = {
-        "metric_type": "L2", 
+        "metric_type": "COSINE",  # Changed from L2 to COSINE
         "index_type": "IVF_FLAT", 
         "params": {"nlist": 128}
       }
@@ -118,8 +118,10 @@ class MilvusClient(BaseVectorDB):
         self.logger.error(f"Failed to insert embeddings: {e}")
         raise
     
-  def search_similar(self, query_embedding: np.ndarray, top_k: int = 10, 
-                    search_params: Dict = None) -> List[Dict]:
+  def search_similar(self, 
+                     query_embedding: np.ndarray, 
+                     top_k: int = 10, 
+                     search_params: Dict = None) -> List[Dict]:
     """
     Search for similar images
     
@@ -133,7 +135,7 @@ class MilvusClient(BaseVectorDB):
     """
     try:
       if search_params is None:
-          search_params = {"metric_type": "L2", "params": {"nprobe": 10}}
+          search_params = {"metric_type": "COSINE", "params": {"nprobe": 10}}
       
       results = self.collection.search(
           data=[query_embedding.tolist()],
@@ -150,6 +152,7 @@ class MilvusClient(BaseVectorDB):
           formatted_results.append({
               "id": hit.id,
               "distance": hit.distance,
+              "score": hit.score,
               "image_path": hit.entity.get("image_path"),
               "schema": hit.entity.get("schema")  # Fixed: "metadata" -> "schema"
           })
@@ -171,7 +174,20 @@ class MilvusClient(BaseVectorDB):
     except Exception as e:
       self.logger.error(f"Failed to delete embeddings: {e}")
       raise
-    
+  
+  def get_embedding_by_id(self, id: int): 
+      try:
+          expr = f"id == {id}"
+          results = self.collection.query(expr=expr, output_fields=["embedding"])
+          if results:
+              return np.array(results[0]["embedding"])
+          else:
+              self.logger.warning(f"No embedding found for ID {id}")
+              return None
+      except Exception as e:
+          self.logger.error(f"Failed to get embedding by ID: {e}")
+          raise
+
   def get_collection_stats(self) -> Dict[str, Any]:
     """Get collection statistics"""
     try:
