@@ -152,7 +152,6 @@ class ImageFeatureExtractor(BaseFeatureExtractor):
                 model_name: str, 
                 device: str,
                 batch_size: int,
-                embed_dim: int,
                 enable_mixed_precision: bool): 
     """
     Initialize pretrained model feature extractor with enhanced capabilities.
@@ -179,16 +178,6 @@ class ImageFeatureExtractor(BaseFeatureExtractor):
 
     # Load model and move to specified device
     self.model = self.load_model().to(device=device)
-
-    # Setup layer projection
-    self.embed_dim = embed_dim
-    input_dim = self.SUPPORTED_MODELS.get(model_name, 768)
-    self.use_projection = embed_dim != self.SUPPORTED_MODELS.get(model_name, 768)
-    if self.use_projection:
-        self.projection = torch.nn.Linear(in_features=input_dim, 
-                                        out_features=self.embed_dim).to(device=device)
-        torch.nn.init.xavier_uniform_(self.projection.weight)
-        torch.nn.init.zeros_(self.projection.bias)
     
     # Setup preprocessing pipeline
     self.config = resolve_data_config(args={}, model=self.model)
@@ -293,8 +282,6 @@ class ImageFeatureExtractor(BaseFeatureExtractor):
             else:
                 output = self.model(input_tensor)
           
-          if self.use_projection: 
-              output = self.projection(output)
             
           # Handle both single image and batch
           if output.shape[0] == 1:  # Single image result
@@ -376,7 +363,6 @@ class ImageFeatureExtractor(BaseFeatureExtractor):
       """Get the dimension of extracted features."""
       return  {
           "model_dim": self.SUPPORTED_MODELS.get(self.model_name, 768), 
-          "projection_dim": self.embed_dim 
       }
 
   def get_model_info(self) -> dict[str, Any]:
