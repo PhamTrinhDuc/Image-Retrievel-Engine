@@ -15,11 +15,23 @@ logger = create_logger("data_loader")
 
 
 class DataLoader:
-    def __init__(self, bucket_name: str, source_folder: str, max_workers=8, batch_size=50):
+    def __init__(self, bucket_name: str, 
+                 source_folder: str, 
+                 minio_endpoint: str,
+                 minio_access_key: str,
+                 minio_secret_key: str,
+                 max_workers: int, 
+                 batch_size: int, 
+                 size_limit: tuple):
+      
       self.source_folder = source_folder
       self.max_workers = max_workers
       self.batch_size = batch_size
-      self.client = MinioClient(bucket_name=bucket_name)
+      self.client = MinioClient(bucket_name=bucket_name, 
+                                minio_endpoint=minio_endpoint,
+                                minio_access_key=minio_access_key,
+                                minio_secret_key=minio_secret_key)
+      self.size_limit = size_limit  # (min, max) size in pixels
       self.client.create_bucket_if_not_exists()
 
     # ----------------------
@@ -36,9 +48,9 @@ class DataLoader:
         for img in os.listdir(path):
           image_path = os.path.join(path, img)
           w, h = Image.open(image_path).size
-          if h > 1500 or w > 1500:
+          if h > self.size_limit[1] or w > self.size_limit[1]:
             continue
-          if h < 150 or w < 150:
+          if h < self.size_limit[0] or w < self.size_limit[0]:
             continue
           animal_path.append(image_path)
 

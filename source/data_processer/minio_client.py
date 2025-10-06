@@ -8,12 +8,16 @@ MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY")
 MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY")
 
 class MinioClient:
-  def __init__(self, bucket_name: str):
+  def __init__(self,
+               minio_endpoint: str,
+               minio_access_key: str,
+               minio_secret_key: str, 
+               bucket_name: str):
     self.bucket_name = bucket_name 
     self.client = Minio(
-      endpoint=MINIO_ENDPOINT,
-      access_key=MINIO_ACCESS_KEY,
-      secret_key=MINIO_SECRET_KEY,
+      endpoint=minio_endpoint,
+      access_key=minio_access_key,
+      secret_key=minio_secret_key,
       secure=False
     )
 
@@ -26,7 +30,7 @@ class MinioClient:
 
   def delete_bucket_if_not_exists(self):
     if self.client.bucket_exists(self.bucket_name):
-        self.client.remove_bucket(self.bucket_name)
+        self.client.remove_bucket(bucket_name=self.bucket_name)
         print(f"Deleted bucket: {self.bucket_name}")
     else:
         print(f"Bucket {self.bucket_name} not already exists")
