@@ -12,6 +12,7 @@ from PIL import Image
 from vector_db.vdb_factory import VectorDBFactory
 from embedder.extractor_factory import EmbedderFactory
 from utils.helpers import create_logger
+from configs.helper import DEFAULT_EXTRACTOR_CONFIGS, DEFAULT_SEARCH_CONFIGS
 
 
 class ImageRetriever:
@@ -21,64 +22,9 @@ class ImageRetriever:
     """
     
     # Default configurations for different extractors (optimized for inference)
-    DEFAULT_EXTRACTOR_CONFIGS = {
-        'resnet': {
-            'model_name': 'resnet34',
-            'device': 'cpu',
-            'batch_size': 1,  # Smaller batch for inference
-            'enable_mixed_precision': False
-        },
-        'vgg': {
-            'model_name': 'vgg16',
-            'device': 'cpu',
-            'batch_size': 1,
-            'enable_mixed_precision': False
-        },
-        'vit': {
-            'model_name': 'vit_base_patch16_224',
-            'device': 'cpu',
-            'batch_size': 1,
-            'enable_mixed_precision': False
-        },
-        'dinov2': {
-            'model_name': 'dinov2_vitb14',
-            'device': 'cpu',
-            'batch_size': 1,
-            'enable_mixed_precision': False
-        }
-    }
-    
+    DEFAULT_EXTRACTOR_CONFIGS = DEFAULT_EXTRACTOR_CONFIGS
     # Default search configurations for different vector databases
-    DEFAULT_SEARCH_CONFIGS = {
-        'milvus': {
-            'host': 'localhost',
-            'port': '19530',
-            'collection_name': 'image_embeddings',
-            'search_params': {
-                'metric_type': 'L2',
-                'params': {'nprobe': 16}
-            }
-        },
-        'pinecone': {
-            'api_key': '',
-            'environment': 'us-west1-gcp',
-            'index_name': 'image-embeddings',
-            'search_params': {
-                'top_k': 10,
-                'include_metadata': True
-            }
-        },
-        'weaviate': {
-            'host': 'localhost',
-            'port': 8080,
-            'class_name': 'ImageEmbedding',
-            'scheme': 'http',
-            'search_params': {
-                'limit': 10,
-                'certainty': 0.7
-            }
-        }
-    }
+    DEFAULT_SEARCH_CONFIGS = DEFAULT_SEARCH_CONFIGS
     
     def __init__(self,
                  extractor_type: str,
@@ -110,6 +56,9 @@ class ImageRetriever:
             self.DEFAULT_SEARCH_CONFIGS.get(self.vdb_type, {}),
             vdb_config or {}
         )
+        self.vdb_config['collection_name'] = self.extractor_config.get('collection_name', '')  
+        self.extractor_config.pop('collection_name', None)  # Remove to avoid confusion
+
         
         # Initialize components
         self.extractor = None
