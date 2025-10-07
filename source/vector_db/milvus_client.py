@@ -243,6 +243,16 @@ class MilvusClient(BaseVectorDB):
       self.logger.error(f"Failed to drop collection: {e}")
       raise
   
+  def list_collections(self) -> List[str]:
+    """List all collections in Milvus"""
+    try:
+      collections = utility.list_collections()
+      self.logger.info(f"Found {len(collections)} collections")
+      return collections
+    except Exception as e:
+      self.logger.error(f"Failed to list collections: {e}")
+      return []
+    
   def __enter__(self):
     """Context manager entry"""
     self.connect()
