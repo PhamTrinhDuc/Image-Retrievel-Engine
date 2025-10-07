@@ -5,16 +5,18 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 import numpy as np
 from urllib.parse import urlparse
-from typing import List, Dict, Any, Optional, Tuple, Set
+from typing import List, Dict, Tuple, Set
 from collections import defaultdict
 import glob
+import json
 
-from vector_db.milvus_client import MilvusClient
-from embedder.extractor_factory import EmbedderFactory
 from retriever.retriever import ImageRetriever
 from utils.helpers import create_logger
 from configs.helper import DataConfig
 from data_processer.minio_client import MinioClient
+
+
+RESULT_PATH = "./source/validator/results/metrics_results.json"
 
 minio_client = MinioClient(
   minio_endpoint=DataConfig.minio_endpoint,
@@ -247,33 +249,22 @@ class Evaluator:
             except Exception as e:
                 self.logger.error(f"Error processing query {query_img}: {str(e)}")
                 continue
-
+        
+        results = {"model_name": self.retriever.extractor_type,
+                   "vdb_type": self.retriever.vdb_type,
+                   "metrics": {}}
         # Calculate metrics
-        final_results = self.metrics.evaluate_batch(query_results, eval_k_values)
+        metrics = self.metrics.evaluate_batch(query_results, eval_k_values)
+        results['metrics'] = metrics
         
+        with open(RESULT_PATH, mode="a") as f:
+            f.write(json.dumps(results, indent=2))
+
         self.logger.info("Evaluation completed!")
-        return final_results
+        return results
     
-    def print_results(self, results: Dict[str, float]):
-        """In kết quả một cách đẹp mắt"""
-        print("\n" + "="*50)
-        print("IMAGE RETRIEVAL EVALUATION RESULTS")
-        print("="*50)
-        
-        print(f"mAP: {results.get('mAP', 0.0):.4f}")
-        print("-" * 30)
-        
-        for metric, score in results.items():
-            if metric != 'mAP':
-                print(f"{metric}: {score:.4f}")
-        
-        print("="*50 + "\n")
 
-
-def quick_evaluation_example():
-    """
-    Ví dụ sử dụng nhanh
-    """
+def main():
     # Initialize components
     retriever = ImageRetriever(
         extractor_type='resnet',
@@ -304,11 +295,8 @@ def quick_evaluation_example():
         eval_k_values=[1, 5, 10, 20]
     )
     
-    # Print results
-    evaluator.print_results(results)
-    
     return results
 
 
 if __name__ == "__main__":
-    quick_evaluation_example()
+    main()

@@ -7,23 +7,26 @@ from PIL import Image
 # Add parent directories to path
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
-
-from embedder.extractor_factory import ExtractorFactory
+from utils.helpers import create_logger
+from embedder.extractor_factory import EmbedderFactory
 from vector_db.milvus_client import MilvusClient
 
+
+logger = create_logger(job_name="benchmark_timer")
+RESULT_PATH = "./source/validator/results/benchmark_results.json"
 
 class ModelBenchmark:
     """Simple benchmark for embedding models and search performance"""
     
     def __init__(self):
-        self.extractor_types = ["resnet", "vgg", "vit", "dinov2", "clip"]
+        self.extractor_types = ["resnet"]
         self.test_images = []
         self.results = {}
     
-    def load_test_images(self, image_dir="../images/evaluation", max_images=10):
+    def load_test_images(self, image_dir="images/evaluation", max_images=10):
         """Load test images for benchmarking"""
         if not os.path.exists(image_dir):
-            print(f"Warning: {image_dir} not found, creating dummy images")
+            logger.warning(f"Warning: {image_dir} not found, creating dummy images")
             return self._create_dummy_images(max_images)
         
         images = []
@@ -37,7 +40,7 @@ class ModelBenchmark:
                         images.append(img)
                         count += 1
                     except Exception as e:
-                        print(f"Error loading {file}: {e}")
+                        logger.error(f"Error loading {file}: {e}")
                         continue
         
         return images
@@ -54,8 +57,7 @@ class ModelBenchmark:
     
     def benchmark_embedding_models(self, images, num_runs=3):
         """Benchmark embedding extraction time for different models"""
-        print("Benchmarking Embedding Models...")
-        print("=" * 50)
+        logger.info("Benchmarking Embedding Models...")
         
         results = {}
         
@@ -63,7 +65,7 @@ class ModelBenchmark:
             print(f"\nTesting {model_name}...")
             try:
                 # Initialize extractor
-                extractor = ExtractorFactory.get_extractor(model_name)
+                extractor = EmbedderFactory.create_extractor(extractor_type=model_name)
                 
                 times = []
                 for run in range(num_runs):
@@ -71,7 +73,7 @@ class ModelBenchmark:
                     
                     # Extract features for all images
                     for img in images:
-                        features = extractor.extract_features(img)
+                        features = extractor.get_embedding(img)
                     
                     end_time = time.time()
                     run_time = end_time - start_time
@@ -89,30 +91,29 @@ class ModelBenchmark:
                     'feature_dim': extractor.feature_dim,
                     'all_times': times
                 }
-                
-                print(f"  Average: {avg_time:.3f}s total, {avg_per_image:.3f}s per image")
-                print(f"  Feature dim: {extractor.feature_dim}")
-                
+
+                logger.info(f"  Average: {avg_time:.3f}s total, {avg_per_image:.3f}s per image")
+
             except Exception as e:
-                print(f"  Error with {model_name}: {e}")
+                logger.error(f"  Error with {model_name}: {e}")
                 results[model_name] = {'error': str(e)}
         
         return results
-    
-    def benchmark_milvus_search(self, num_searches=10, top_k=5):
+
+    def benchmark_milvus_search(self, collection_name: str, num_searches=10, top_k=5):
         """Benchmark Milvus search performance"""
-        print("\nBenchmarking Milvus Search...")
-        print("=" * 50)
-        
+        logger.info("Benchmarking Milvus Search...")
+
         try:
             # Initialize Milvus client
-            milvus_client = MilvusClient()
-            collection_name = "image_vectors"  # Default collection
+            milvus_client = MilvusClient(host="localhost", port="19530", collection_name=collection_name)
+            milvus_client.connect()
+            milvus_client.load_collection()
             
             # Check if collection exists
-            collections = milvus_client.client.list_collections()
-            if collection_name not in [col.name for col in collections]:
-                print(f"Collection {collection_name} not found")
+            collections = milvus_client.list_collections()
+            if collection_name not in collections:
+                logger.error(f"Collection {collection_name} not found")
                 return {'error': 'Collection not found'}
             
             # Create random query vectors (assuming 512-dim features)
@@ -120,23 +121,22 @@ class ModelBenchmark:
             
             for i in range(num_searches):
                 # Random query vector
-                query_vector = np.random.random(512).tolist()
+                query_vector = np.random.random(512)
                 
                 start_time = time.time()
                 
                 # Perform search
-                results = milvus_client.search(
-                    collection_name=collection_name,
-                    query_vectors=[query_vector],
-                    limit=top_k
+                results = milvus_client.search_similar(
+                    query_embedding=query_vector,
+                    top_k=top_k
                 )
                 
                 end_time = time.time()
                 search_time = end_time - start_time
                 search_times.append(search_time)
-                
-                print(f"Search {i+1}: {search_time:.4f}s, found {len(results[0]) if results else 0} results")
-            
+
+                logger.info(f"Search {i+1}: {search_time:.4f}s, found {len(results[0]) if results else 0} results")
+
             # Calculate statistics
             avg_search_time = np.mean(search_times)
             min_search_time = np.min(search_times)
@@ -150,32 +150,26 @@ class ModelBenchmark:
                 'top_k': top_k
             }
             
-            print(f"\nSearch Statistics:")
-            print(f"  Average: {avg_search_time:.4f}s")
-            print(f"  Min: {min_search_time:.4f}s")
-            print(f"  Max: {max_search_time:.4f}s")
-            
             return search_results
             
         except Exception as e:
-            print(f"Error benchmarking Milvus: {e}")
+            logger.error(f"Error benchmarking Milvus: {e}")
             return {'error': str(e)}
     
     def run_full_benchmark(self):
         """Run complete benchmark suite"""
-        print("Starting Image Retrieval Benchmark")
-        print("=" * 50)
-        
+        logger.info("Starting Image Retrieval Benchmark")
+
         # Load test images
-        print("Loading test images...")
+        logger.info("Loading test images...")
         self.test_images = self.load_test_images()
-        print(f"Loaded {len(self.test_images)} test images")
-        
+        logger.info(f"Loaded {len(self.test_images)} test images")
+
         # Benchmark embedding models
         embedding_results = self.benchmark_embedding_models(self.test_images)
         
         # Benchmark Milvus search
-        search_results = self.benchmark_milvus_search()
+        search_results = self.benchmark_milvus_search(collection_name="resnet_embedding")
         
         # Store results
         self.results = {
@@ -186,41 +180,13 @@ class ModelBenchmark:
                 'timestamp': time.strftime('%Y-%m-%d %H:%M:%S')
             }
         }
-        
+        os.makedirs(os.path.dirname(RESULT_PATH), exist_ok=True)
+        with open(RESULT_PATH, mode="a") as f:
+            import json
+            f.write(json.dumps(self.results, indent=2))
+            
         return self.results
     
-    def print_summary(self):
-        """Print benchmark summary"""
-        if not self.results:
-            print("No results to display. Run benchmark first.")
-            return
-        
-        print("\n" + "=" * 60)
-        print("BENCHMARK SUMMARY")
-        print("=" * 60)
-        
-        # Embedding models summary
-        print("\nEmbedding Models Performance:")
-        print("-" * 40)
-        
-        embedding_results = self.results['embedding_models']
-        for model, data in embedding_results.items():
-            if 'error' in data:
-                print(f"{model:10}: ERROR - {data['error']}")
-            else:
-                print(f"{model:10}: {data['avg_per_image']:.3f}s per image, dim: {data['feature_dim']}")
-        
-        # Search performance summary
-        print("\nMilvus Search Performance:")
-        print("-" * 40)
-        
-        search_results = self.results['milvus_search']
-        if 'error' in search_results:
-            print(f"Search: ERROR - {search_results['error']}")
-        else:
-            print(f"Average search time: {search_results['avg_search_time']:.4f}s")
-            print(f"Search range: {search_results['min_search_time']:.4f}s - {search_results['max_search_time']:.4f}s")
-
 
 def main():
     """Main benchmark function"""
@@ -228,9 +194,6 @@ def main():
     
     # Run benchmark
     results = benchmark.run_full_benchmark()
-    
-    # Print summary
-    benchmark.print_summary()
     
     return results
 
