@@ -15,5 +15,5 @@ class SearchResponse(BaseModel):
 
 class HealthResponse(BaseModel):
     status: str
+    code: int
     message: str
-    models_loaded: Dict[str, bool]
