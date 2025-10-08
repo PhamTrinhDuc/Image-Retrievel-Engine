@@ -4,3 +4,6 @@ pymilvus==2.6.2
 timm==1.0.20
 pytest==8.4.2
 loguru==0.7.3
+fastapi==0.118.0
+uvicorn[standard]==0.37.0
+python-multipart==0.0.20
