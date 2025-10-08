@@ -7,6 +7,9 @@ Usage: python run_app.py
 import subprocess
 import sys
 import os
+from dotenv import load_dotenv
+load_dotenv()
+
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 
@@ -19,17 +22,16 @@ def main():
     
     # Command to run streamlit
     cmd = [
-        sys.executable, "-m", "streamlit", "run", "frontend/app.py",
-        "--server.port", "8501",
-        "--server.address", "0.0.0.0",
+        sys.executable, "-m", "streamlit", "run", "src/app.py",
+        "--server.port", f"{os.getenv('FRONTEND_PORT', 8501)}",
+        "--server.address", f"{os.getenv('FRONTEND_HOST', 'localhost')}",
         "--server.headless", "true"
     ]
     
     print("Starting Image Retrieval Streamlit App...")
-    print("App will be available at: http://localhost:8501")
-    print("Make sure API server is running at: http://localhost:8000")
-    print("-" * 50)
-    
+    print(f"App will be available at: http://{os.getenv('FRONTEND_HOST', 'localhost')}:{os.getenv('FRONTEND_PORT', 8501)}")
+    print(f"Make sure API server is running at: http://{os.getenv('BACKEND_HOST', 'localhost')}:{os.getenv('BACKEND_PORT', 8000)}")
+
     try:
         subprocess.run(cmd)
     except KeyboardInterrupt:

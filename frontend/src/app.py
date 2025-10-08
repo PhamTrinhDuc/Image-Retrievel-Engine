@@ -1,10 +1,7 @@
 import streamlit as st
 import requests
-import io
-import base64
 from PIL import Image
-import json
-import time
+import os
 
 # Page config
 st.set_page_config(
@@ -14,7 +11,7 @@ st.set_page_config(
 )
 
 # API Configuration
-API_BASE_URL = "http://localhost:8000"
+API_BASE_URL = os.getenv(f"{os.getenv('BACKEND_HOST')}:{os.getenv('BACKEND_PORT')}", "http://localhost:8000")
 
 class ImageRetrievalApp:
     def __init__(self):
@@ -103,7 +100,6 @@ def main():
             "vgg": "VGG-16 features", 
             "vit": "Vision Transformer",
             "dinov2": "DINOv2 features",
-            "clip": "CLIP embeddings"
         }
         
         for model in available_models:
