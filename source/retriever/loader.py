@@ -122,7 +122,9 @@ class ImageEmbeddingLoader:
             if not self.is_connected:
                 self.logger.error("Failed to connect to vector database")
                 return False
-            
+            # Create collection if not exists
+            self.vdb_client.create_collection(dim=self._get_feature_dimension(), 
+                                               description=f"Image embeddings using {self.extractor_type} extractor")
             self.logger.info(f"Connected to {self.vdb_type} successfully")
         except Exception as e:
             self.logger.error(f"Connection failed: {str(e)}")
