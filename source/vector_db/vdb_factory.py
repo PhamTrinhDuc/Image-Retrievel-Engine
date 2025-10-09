@@ -25,7 +25,7 @@ class VectorDBFactory:
             return MilvusClient(
                 host=kwargs.get("host", "localhost"),
                 port=kwargs.get("port", "19530"),
-                collection_name=kwargs.get("collection_name", "image_embeddings")
+                collection_name=kwargs.get("collection_name")
             )
         # elif db_type.lower() == "pinecone":
         #     return PineconeClient(
