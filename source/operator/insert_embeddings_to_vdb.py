@@ -51,7 +51,11 @@ def load_embeddings_to_vdb(model: str, config_model: dict,
     loader.disconnect()
 
 
-def main_with_args(args):
+def run(model: str, 
+        vdb: str, 
+        collection_name: str, 
+        recreate_collection: bool=False
+        ):
   image_urls = get_images_from_minio()
   image_list = []
   metadata_list = []
@@ -63,11 +67,11 @@ def main_with_args(args):
   load_embeddings_to_vdb(
     image_urls=image_list, 
     metadata=metadata_list,
-    model=args.model,
+    model=model,
     config_model=None,
-    vdb=args.vdb,
-    vdb_config={"collection_name": args.collection_name},
-    recreate_collection=args.recreate_collection
+    vdb=vdb,
+    vdb_config={"collection_name": collection_name},
+    recreate_collection=recreate_collection
   )
   
 if __name__ == "__main__":
@@ -79,4 +83,8 @@ if __name__ == "__main__":
 
   args = parser.parse_args()
 
-  main_with_args(args=args)
+  run(model=args.model,
+    vdb=args.vdb,
+    collection_name=args.collection_name,
+    recreate_collection=args.recreate_collection
+  )
