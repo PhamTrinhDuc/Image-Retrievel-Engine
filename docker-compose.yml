@@ -83,3 +83,4 @@ volumes:
     external: true
     name: docker_minio_storage
   milvus_data:
+    name: milvus_data
