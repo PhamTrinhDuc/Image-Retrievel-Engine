@@ -25,31 +25,21 @@ async def list_vector_db():
       
 
 @routes.get("/health", response_model=HealthResponse)
-async def health_check(vdb_name: str = Query("milvus", description="Name of the vector database to check")):
+async def health_check(vdb_name: str = Query("milvus", description="Name of the vector database to check"), 
+                       collection_name: str = Query("resnet_embedding", description="Name of the collection to check")):
   """
   Health check endpoint to verify if the service is running.
   """
   if vdb_name not in DEFAULT_SEARCH_CONFIGS:
         return HealthResponse(status="error", message=f"Unsupported vector database: {vdb_name}. Supported databases are: {list(DEFAULT_SEARCH_CONFIGS.keys())}")
   try:
-        vdb = VectorDBFactory.create_client(db_type=vdb_name)
+        vdb = VectorDBFactory.create_client(db_type=vdb_name, kwargs={"collection_name": collection_name})
         vdb.connect()
+        vdb.load_collection()
         return HealthResponse(status="ok", code=200, message="Service is running")
   except Exception as e:
         logger.error(f"Health check failed: {str(e)}")
         return HealthResponse(status="error", code=500, message=f"Health check failed: {str(e)}")
-
-
-@routes.get("/get_vdb_info", response_class=JSONResponse)
-async def get_vector_database_info(vdb_name: str = Query("milvus", description="Name of the vector database to get info for")):
-  """
-  Get information about the vector database.
-  """
-  if vdb_name not in DEFAULT_SEARCH_CONFIGS:
-      return JSONResponse(status_code=400, content={"error": f"Unsupported vector database: {vdb_name}. Supported databases are: {list(DEFAULT_SEARCH_CONFIGS.keys())}"})
-  
-  return JSONResponse(content={"vector_db_info": DEFAULT_SEARCH_CONFIGS[vdb_name]})
-
 
 @routes.get("/list_collections", response_class=JSONResponse)
 async def list_vector_collections():
@@ -67,14 +57,16 @@ async def list_vector_collections():
 
 
 @routes.get("/collection_stats", response_class=JSONResponse)
-async def get_collection_stats(vdb_name: str = Query("milvus", description="Name of the vector database"), 
-                               collection_name: str = Query(..., description="Name of the collection to get stats for")):
+async def get_collection_stats(vdb_name: str = Query("milvus", description="Name of the vector database"),
+                               collection_name: str = Query("resnet_embedding", description="Name of the collection to get stats")):
   """
   Get statistics of a specific collection.
   """
   try:
-      vdb = VectorDBFactory.create_client(db_type=vdb_name)
-      stats = vdb.get_collection_stats(collection_name=collection_name)
+      vdb = VectorDBFactory.create_client(db_type=vdb_name, **{"collection_name": collection_name})
+      vdb.connect()
+      vdb.load_collection()
+      stats = vdb.get_collection_stats()
       return JSONResponse(content={"collection_stats": stats})
   except Exception as e:
       logger.error(f"Failed to get collection stats: {str(e)}")
