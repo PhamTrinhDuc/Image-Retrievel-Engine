@@ -14,7 +14,11 @@ __pycache__/
 *.so
 
 # Custom
-milvus_e2e_qa
+images/evaluation
+note-command.md
+.env.prod 
+.env.dev
+
 
 
 # Distribution / packaging
