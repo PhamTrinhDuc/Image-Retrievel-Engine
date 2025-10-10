@@ -63,16 +63,19 @@ def run(model: str,
     image_list.extend(urls)
     metadata_list.extend([category] * len(urls))
     # break # For testing, remove this line to process all categories
-
-  load_embeddings_to_vdb(
-    image_urls=image_list, 
-    metadata=metadata_list,
-    model=model,
-    config_model=None,
-    vdb=vdb,
-    vdb_config={"collection_name": collection_name},
-    recreate_collection=recreate_collection
-  )
+  try: 
+    load_embeddings_to_vdb(
+      image_urls=image_list, 
+      metadata=metadata_list,
+      model=model,
+      config_model=None,
+      vdb=vdb,
+      vdb_config={"collection_name": collection_name},
+      recreate_collection=recreate_collection
+    )
+  except Exception as e:
+    print(f"Error during loading embeddings to VDB: {str(e)}")
+    raise Exception(f"Error during loading embeddings to VDB: {str(e)}")
   
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description="Insert image embeddings to vector database.")

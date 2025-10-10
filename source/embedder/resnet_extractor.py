@@ -23,7 +23,6 @@ class ResNetExtractor(ImageFeatureExtractor):
         'wide_resnet50_2': 2048,
         'wide_resnet101_2': 2048
     }
-    
     def __init__(self, 
                  model_name: str = "resnet34", 
                  device: str = "cpu",
@@ -44,7 +43,7 @@ class ResNetExtractor(ImageFeatureExtractor):
                          device=device, 
                          batch_size=batch_size, 
                          enable_mixed_precision=enable_mixed_precision)
-       
+        
     def load_model(self) -> torch.nn.Module:
       """Load pretrained ResNet model with validation."""
       try:

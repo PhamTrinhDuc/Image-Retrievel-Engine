@@ -146,7 +146,6 @@ class ImageFeatureExtractor(BaseFeatureExtractor):
 
   # Supported DINOv2 models with their feature dimensions
   SUPPORTED_MODELS = {}
-  JOB_NAME = ""
 
   def __init__(self, 
                 model_name: str, 
@@ -174,7 +173,7 @@ class ImageFeatureExtractor(BaseFeatureExtractor):
     self.enable_mixed_precision = enable_mixed_precision and device.startswith('cuda')
     
     # Setup logging
-    self.logger = create_logger(job_name=self.JOB_NAME)
+    self.logger = create_logger()
 
     # Load model and move to specified device
     self.model = self.load_model().to(device=device)
@@ -380,7 +379,7 @@ class ImageFeatureExtractor(BaseFeatureExtractor):
   def __del__(self):
       """Cleanup when object is destroyed."""
       if hasattr(self, 'logger'):
-          self.logger.info(f"{self.JOB_NAME} instance destroyed")
+          self.logger.info(f"Instance extractor: {self.model_name} destroyed")
 
 
 class TextFeatureExtractor(BaseFeatureExtractor):
