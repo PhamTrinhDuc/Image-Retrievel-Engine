@@ -3,11 +3,10 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 import numpy as np
-from pymilvus import Collection, connections, FieldSchema, CollectionSchema, DataType, utility
-from typing import List, Dict, Any, Optional
+from pymilvus import Collection, connections, FieldSchema, CollectionSchema, DataType, utility, exceptions
+from typing import List, Dict, Any
 from utils.helpers import create_logger
 from source.base.base_vdb import BaseVectorDB
-
 
 class MilvusClient(BaseVectorDB): 
   def __init__(self, host: str, port: str, collection_name: str):
@@ -21,16 +20,19 @@ class MilvusClient(BaseVectorDB):
     """
     super().__init__(host, port, collection_name)
     self.alias = "default"
-    self.logger = create_logger(job_name="milvus_vectordb")
+    self.logger = create_logger()
 
   def connect(self):
     try: 
-      connections.connect(alias=self.alias, host=self.host, port=self.port)
+      connections.connect(alias=self.alias, host=self.host, port=self.port, )
       self.logger.info(f"Connected to Milvus at {self.host}:{self.port}")
       return True
+    except exceptions.ConnectError as ce:
+      self.logger.error(f"Connection timeout or refused: {ce}")
+      raise Exception(f"Connection timeout or refused: {ce}")
     except Exception as e: 
       self.logger.error(f"Failed to connect to Milvus: {e}")
-      return False
+      raise Exception(f"Failed to connect to Milvus: {e}")
     
   def disconnect(self):
     """Disconnect from Milvus server"""
@@ -39,6 +41,7 @@ class MilvusClient(BaseVectorDB):
       self.logger.info("Disconnected from Milvus")
     except Exception as e:
       self.logger.error(f"Error disconnecting from Milvus: {e}")
+      raise Exception(f"Error disconnecting from Milvus: {e}")
   
   def create_collection(self, dim: int=512, description:str="Image embeddings collection"):
     """
