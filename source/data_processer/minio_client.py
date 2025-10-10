@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-load_dotenv()
+load_dotenv(dotenv_path="../../.env.prod")
 from minio import Minio
 
 MINIO_ENDPOINT = f"localhost:{os.getenv('MINIO_PORT')}"

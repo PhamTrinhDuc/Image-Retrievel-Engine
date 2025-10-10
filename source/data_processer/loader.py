@@ -11,7 +11,7 @@ from utils.helpers import create_logger
 from data_processer.minio_client import MinioClient
 
 
-logger = create_logger("data_loader")
+logger = create_logger()
 
 
 class DataLoader:
@@ -164,4 +164,5 @@ class DataLoader:
                 images = self.client.get_images_in_category(category)
                 logger.info(f"  📂 {category}: {len(images)} images")
         except Exception as e:
+            raise ValueError("Error getting bucket stats") from e
             logger.error(f"Error getting bucket stats: {e}")
