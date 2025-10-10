@@ -44,7 +44,7 @@ class ImageRetriever:
         self.vdb_type = vdb_type.lower()
         
         # Setup logging
-        self.logger = create_logger(job_name="image_retriever")
+        self.logger = create_logger()
         
         # Merge configurations with defaults
         self.extractor_config = self._merge_config(
@@ -58,7 +58,6 @@ class ImageRetriever:
         )
         self.vdb_config['collection_name'] = self.extractor_config.get('collection_name', '')  
         self.extractor_config.pop('collection_name', None)  # Remove to avoid confusion
-
         
         # Initialize components
         self.extractor = None
@@ -134,12 +133,12 @@ class ImageRetriever:
             self.is_connected = self.vdb_client.connect()
             if not self.is_connected:
                 self.logger.error("Failed to connect to vector database")
-                return False
+                raise Exception("Failed to connect to vector database")
             
             self.logger.info(f"Connected to {self.vdb_type} successfully")
         except Exception as e:
             self.logger.error(f"Connection failed: {str(e)}")
-            return False
+            raise Exception(f"Connection failed: {str(e)}")
         
         # Load collection for search
         try:
@@ -243,11 +242,25 @@ class ImageRetriever:
             
             self.logger.info(f"Found {len(results)} similar images in {search_time:.3f}s")
 
-            return results
+            formatted_results = []
+            for result in results:
+                image_path = result.get("image_path", None)
+                if image_path:
+                    from urllib.parse import urlparse
+                    parsed = urlparse(image_path)
+                    image_path = f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
+
+                formatted_results.append({
+                    "image_id": result.get("id", "unknown"),
+                    "similarity_score": float(result.get("distance", 0.0)),
+                    "image_path": image_path,
+                    "metadata": result.get("schema", {})
+                })
+            return formatted_results
 
         except Exception as e:
             self.logger.error(f"Error during similarity search: {str(e)}")
-            return []
+            raise Exception("Error during similarity search: " + str(e))
     
     def batch_search_similar_images(self,
                                    query_inputs: List[Union[str, Path, Image.Image, np.ndarray]],
@@ -365,15 +378,16 @@ class ImageRetriever:
     def disconnect(self):
         """Disconnect from vector database and cleanup resources."""
         try:
-            if self.is_connected and self.vdb_client:
-                self.vdb_client.disconnect()
-                self.is_connected = False
-                self.collection_loaded = False
-                
-            self.logger.info(f"Disconnected from {self.vdb_type}")
+          if self.is_connected and self.vdb_client:
+            self.vdb_client.disconnect()
+            self.is_connected = False
+            self.collection_loaded = False
+              
+          self.logger.info(f"Disconnected from {self.vdb_type}")
             
         except Exception as e:
-            self.logger.error(f"Error during disconnect: {str(e)}")
+          self.logger.error(f"Error during disconnect: {str(e)}")
+          raise Exception(f"Error during disconnect: {str(e)}")
     
     def __enter__(self):
         """Context manager entry."""

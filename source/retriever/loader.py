@@ -40,7 +40,7 @@ class ImageEmbeddingLoader:
         self.vdb_type = vdb_type.lower()
         
         # Setup logging
-        self.logger = create_logger(job_name="image_embedding_loader")
+        self.logger = create_logger()
         
         # Merge configurations with defaults
         self.extractor_config = self._merge_config(
@@ -82,7 +82,7 @@ class ImageEmbeddingLoader:
             return True
         except Exception as e:
             self.logger.error(f"Failed to initialize extractor: {str(e)}")
-            return False
+            raise ValueError(f"Failed to initialize extractor: {str(e)}")
     
     def initialize_vdb_client(self):
         """Initialize the vector database client with configuration."""
@@ -95,74 +95,74 @@ class ImageEmbeddingLoader:
             return True
         except Exception as e:
             self.logger.error(f"Failed to initialize VDB client: {str(e)}")
-            return False
+            raise ValueError(f"Failed to initialize VDB client: {str(e)}")
     
     def connect_and_setup(self, recreate_collection: bool = False) -> bool:
-        """
-        Connect to vector database and setup collection.
-        
-        Args:
-            recreate_collection: Whether to recreate collection if it exists
-            
-        Returns:
-            True if setup successful, False otherwise
-        """
-        # Initialize components if not done
-        if not self.extractor:
-            if not self.initialize_extractor():
-                return False
-        
-        if not self.vdb_client:
-            if not self.initialize_vdb_client():
-                return False
-        
-        # Connect to database
-        try:
-            self.is_connected = self.vdb_client.connect()
-            if not self.is_connected:
-                self.logger.error("Failed to connect to vector database")
-                return False
-            # Create collection if not exists
-            self.vdb_client.create_collection(dim=self._get_feature_dimension(), 
-                                               description=f"Image embeddings using {self.extractor_type} extractor")
-            self.logger.info(f"Connected to {self.vdb_type} successfully")
-        except Exception as e:
-            self.logger.error(f"Connection failed: {str(e)}")
+      """
+      Connect to vector database and setup collection.
+      
+      Args:
+          recreate_collection: Whether to recreate collection if it exists
+          
+      Returns:
+          True if setup successful, False otherwise
+      """
+      # Initialize components if not done
+      if not self.extractor:
+          if not self.initialize_extractor():
+              return False
+      
+      if not self.vdb_client:
+          if not self.initialize_vdb_client():
+              return False
+      
+      # Connect to database
+      try:
+        self.is_connected = self.vdb_client.connect()
+        if not self.is_connected:
+            self.logger.error("Failed to connect to vector database")
             return False
+        # Create collection if not exists
+        self.vdb_client.create_collection(dim=self._get_feature_dimension(), 
+                                            description=f"Image embeddings using {self.extractor_type} extractor")
+        self.logger.info(f"Connected to {self.vdb_type} successfully")
+      except Exception as e:
+        self.logger.error(f"Connection failed: {str(e)}")
+        raise ValueError(f"Connection failed: {str(e)}")
+      
+      # Setup collection
+      try:
+          # Handle existing collection
+        if self.vdb_type == 'milvus':
+          from pymilvus import utility
+          collection_name = self.vdb_config['collection_name']
+          
+          if utility.has_collection(collection_name):
+            if recreate_collection:
+              utility.drop_collection(collection_name)
+              self.logger.info(f"Dropped existing collection: {collection_name}")
+            else:
+              self.vdb_client.load_collection()
+              self.collection_ready = True
+              self.logger.info(f"Using existing collection: {collection_name}")
+              return True
         
-        # Setup collection
-        try:
-            # Handle existing collection
-            if self.vdb_type == 'milvus':
-                from pymilvus import utility
-                collection_name = self.vdb_config['collection_name']
-                
-                if utility.has_collection(collection_name):
-                    if recreate_collection:
-                        utility.drop_collection(collection_name)
-                        self.logger.info(f"Dropped existing collection: {collection_name}")
-                    else:
-                        self.vdb_client.load_collection()
-                        self.collection_ready = True
-                        self.logger.info(f"Using existing collection: {collection_name}")
-                        return True
-            
-            # Create new collection
-            feature_dim = self._get_feature_dimension()
-            self.vdb_client.create_collection(
-                dim=feature_dim,
-                description=f"Image embeddings using {self.extractor_type} extractor"
-            )
-            
-            self.vdb_client.load_collection()
-            self.collection_ready = True
-            
-            self.logger.info(f"Collection setup completed successfully")
-            return True
-            
-        except Exception as e:
-            self.logger.error(f"Failed to setup collection: {str(e)}")
-            return False
+        # Create new collection
+        feature_dim = self._get_feature_dimension()
+        self.vdb_client.create_collection(
+          dim=feature_dim,
+          description=f"Image embeddings using {self.extractor_type} extractor"
+        )
+        
+        self.vdb_client.load_collection()
+        self.collection_ready = True
+        
+        self.logger.info(f"Collection setup completed successfully")
+        return True
+        
+      except Exception as e:
+          self.logger.error(f"Failed to setup collection: {str(e)}")
+          raise ValueError(f"Failed to setup collection: {str(e)}")
     
     def _get_feature_dimension(self) -> int:
         """Get the feature dimension from the extractor."""
@@ -205,8 +205,8 @@ class ImageEmbeddingLoader:
                 return ids[0]
             
         except Exception as e:
-            self.logger.error(f"Error loading image {image_path}: {str(e)}")
-        
+          self.logger.error(f"Error loading image {image_path}: {str(e)}")
+          
         return None
     
     def load_image_batch(self, 
@@ -278,14 +278,15 @@ class ImageEmbeddingLoader:
       """Disconnect from vector database and cleanup resources."""
       try:
         if self.is_connected and self.vdb_client:
-            self.vdb_client.disconnect()
-            self.is_connected = False
-            self.collection_ready = False
+          self.vdb_client.disconnect()
+          self.is_connected = False
+          self.collection_ready = False
             
         self.logger.info(f"Disconnected from {self.vdb_type}")
           
       except Exception as e:
         self.logger.error(f"Error during disconnect: {str(e)}")
+        raise Exception(f"Error during disconnect: {str(e)}")
     
     def __enter__(self):
         """Context manager entry."""
