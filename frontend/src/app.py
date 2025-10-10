@@ -9,9 +9,14 @@ st.set_page_config(
     page_icon="🔍",
     layout="wide"
 )
+from dotenv import load_dotenv
+load_dotenv('../.env.dev')
+load_dotenv()
 
 # API Configuration
-API_BASE_URL = os.getenv(f"{os.getenv('BACKEND_HOST')}:{os.getenv('BACKEND_PORT')}", "http://localhost:8000")
+BACKEND_HOST = os.getenv("BACKEND_HOST")
+BACKEND_PORT = os.getenv("BACKEND_PORT")
+API_BASE_URL = f"http://{BACKEND_HOST}:{BACKEND_PORT}"
 
 class ImageRetrievalApp:
     def __init__(self):
@@ -21,37 +26,37 @@ class ImageRetrievalApp:
         """Check if API is running"""
         try:
             response = requests.get(f"{self.api_url}/health", timeout=5)
-            return response.status_code == 200, response.json()
+            return response.status_code == 200
         except Exception as e:
             return False, {"error": str(e)}
     
     def search_similar_images(self, image_file, top_k=5, extractor_type="resnet"):
-        """Search for similar images"""
-        try:
-            files = {"file": ("image.jpg", image_file, "image/jpeg")}
-            data = {
-                "top_k": top_k,
-                "extractor_type": extractor_type
-            }
-            
-            response = requests.post(
-                f"{self.api_url}/search/upload",
-                files=files,
-                data=data,
-                timeout=30
-            )
-            
-            return response.status_code == 200, response.json()
-            
-        except Exception as e:
-            return False, {"error": str(e)}
+      """Search for similar images"""
+      try:
+        files = {"file": ("image.jpg", image_file, "image/jpeg")}
+        data = {
+            "top_k": top_k,
+            "extractor_type": extractor_type
+        }
+        
+        response = requests.post(
+            f"{self.api_url}/retriever/upload",
+            files=files,
+            data=data,
+            timeout=30
+        )
+
+        return response.status_code == 200, response.json()
+          
+      except Exception as e:
+        return False, {"error": str(e)}
     
     def get_available_models(self):
         """Get list of available models"""
         try:
-            response = requests.get(f"{self.api_url}/models", timeout=5)
+            response = requests.get(f"{self.api_url}/embedder/list_embedders", timeout=5)
             if response.status_code == 200:
-                return response.json().get("available_extractors", ["resnet"])
+                return response.json().get("supported_embedders", ["resnet"])
             return ["resnet"]
         except:
             return ["resnet"]
@@ -68,18 +73,13 @@ def main():
         
         # API Status
         st.subheader("🔗 API Status")
-        is_healthy, health_data = app.check_api_health()
+        is_healthy = app.check_api_health()
         
         if is_healthy:
             st.success("✅ API is running")
-            if "models_loaded" in health_data:
-                for model, loaded in health_data["models_loaded"].items():
-                    status = "✅" if loaded else "❌"
-                    st.text(f"{status} {model}")
         else:
             st.error("❌ API is not available")
             st.text("Make sure to start the API server:")
-            st.code("cd source/api && python run_server.py")
             return
         
         # Model Selection
@@ -141,7 +141,7 @@ def main():
                     top_k=top_k, 
                     extractor_type=selected_model
                 )
-                
+
                 if success and result.get("success"):
                     st.session_state.search_results = result
                     st.session_state.query_image = image
@@ -176,14 +176,10 @@ def main():
                         result = similar_images[i + j]
                         with col:
                             with st.container():
-                                st.markdown(f"**Result {i+j+1}**")
+                                st.markdown(f"**Result {i+j+1}**: {result.get('metadata', '')}")
                                 st.metric("Similarity Score", f"{result.get('similarity_score', 0):.3f}")
                                 st.text(f"ID: {result.get('image_id', 'unknown')}")
-                                
-                                # Show metadata if available
-                                if result.get("metadata"):
-                                    with st.expander("Metadata"):
-                                        st.json(result.get("metadata", {}))
+
         else:
             st.warning("No similar images found")
     else:
@@ -197,20 +193,16 @@ def main():
     
     with col1:
         if st.button("🏥 Check API Health", use_container_width=True):
-            is_healthy, health_data = app.check_api_health()
+            is_healthy = app.check_api_health()
             if is_healthy:
                 st.success("API is healthy")
-                with st.expander("Health Details"):
-                    st.json(health_data)
             else:
                 st.error("API is down")
-                with st.expander("Error Details"):
-                    st.json(health_data)
     
     with col2:
         if st.button("🤖 List Models", use_container_width=True):
             try:
-                response = requests.get(f"{API_BASE_URL}/models")
+                response = requests.get(f"{API_BASE_URL}/embedder/embedder_info")
                 if response.status_code == 200:
                     data = response.json()
                     st.success("Models loaded")
@@ -224,7 +216,7 @@ def main():
     with col3:
         if st.button("🗄️ Database Info", use_container_width=True):
             try:
-                response = requests.get(f"{API_BASE_URL}/vdb")
+                response = requests.get(f"{API_BASE_URL}/vdb/list_vdb")
                 if response.status_code == 200:
                     data = response.json()
                     st.success("Database connected")
@@ -248,3 +240,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+# streamlit run app.py --server.port=8502 --server.address=0.0.0.0

@@ -1,14 +1,26 @@
-FROM python:3.10-slim
+# Build stage
+FROM python:3.10-slim as builder
 
 WORKDIR /app
+COPY ./requirements.txt .
+
+# Install dependencies in a virtual environment
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Production stage
+FROM python:3.10-slim
+
+# Copy virtual environment from builder stage
+COPY --from=builder /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+WORKDIR /app/src
 ENV PYTHONUNBUFFERED=1
 
-# Copy only requirements first so this layer is cached unless requirements.txt changes
-COPY ./requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir -r /app/requirements.txt
-
-# Copy application source after installing deps so source changes won't bust the pip layer
 COPY ./src /app/src
 
 EXPOSE 8501
-CMD ["python", "src/run_server.py"]
+
+CMD ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]
