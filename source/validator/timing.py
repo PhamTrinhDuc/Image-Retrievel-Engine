@@ -12,7 +12,7 @@ from embedder.extractor_factory import EmbedderFactory
 from vector_db.milvus_client import MilvusClient
 
 
-logger = create_logger(job_name="benchmark_timer")
+logger = create_logger()
 RESULT_PATH = "./source/validator/results/benchmark_results.json"
 
 class ModelBenchmark:

@@ -28,7 +28,7 @@ minio_client = MinioClient(
 
 class ImageRetrievalMetrics:
     def __init__(self):
-      self.logger = create_logger("metrics")
+      self.logger = create_logger()
         
     def precision_at_k(self, retrieved_ids: List[str], relevant_ids: Set[str], k: int) -> float:
         """
