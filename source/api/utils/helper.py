@@ -34,6 +34,6 @@ def get_retriever(logger, extractor_type: str = "resnet") -> ImageRetriever:
     logger.info(f"Created new retriever with {extractor_type} extractor")
   except Exception as e:
     logger.error(f"Failed to create retriever: {str(e)}")
-    raise HTTPException(status_code=500, detail=f"Failed to initialize retriever: {str(e)}")
+    raise ValueError(f"Failed to initialize retriever: {str(e)}")
   
   return retriever

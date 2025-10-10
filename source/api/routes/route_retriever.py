@@ -12,31 +12,9 @@ from api.utils.helper import  get_retriever
 
 from utils.helpers import create_logger
 
-# Initialize logger
-logger = create_logger("route_search")
-
 # Initialize FastAPI app
 routes = APIRouter()
-
-
-# API Endpoints
-@routes.get("/health", response_model=HealthResponse)
-async def health_check():
-    """Health check endpoint"""
-    try:
-        # Try to get default retriever
-        retriever = get_retriever(logger=logger, extractor_type="resnet")
-        return HealthResponse(
-            status="healthy",
-            message="Image Retrieval API is running",
-            code=200,
-        )
-    except Exception as e:
-        return HealthResponse(
-            status="unhealthy", 
-            message=f"Service initialization failed: {str(e)}",
-            code=500
-        )
+logger = create_logger()
 
 @routes.post("/upload", response_model=SearchResponse)
 async def search_by_upload(
@@ -68,18 +46,10 @@ async def search_by_upload(
         
         query_time = time.time() - start_time
         
-        # Format results
-        formatted_results = []
-        for result in results:
-          formatted_results.append({
-              "image_id": result.get("id", "unknown"),
-              "similarity_score": float(result.get("distance", 0.0)),
-              "metadata": result.get("schema", {})
-          })
         
         return SearchResponse(
             success=True,
-            results=formatted_results,
+            results=results,
             query_time=query_time,
             message=f"Found {len(results)} similar images"
         )

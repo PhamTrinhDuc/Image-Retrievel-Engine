@@ -8,12 +8,9 @@ from fastapi.responses import JSONResponse
 from source.operator.insert_embeddings_to_vdb import run
 
 from utils.helpers import create_logger
-
-# Initialize logger
-logger = create_logger("route_operate")
-
 # Initialize FastAPI app
 routes = APIRouter()
+logger = create_logger()
 
 @routes.get("/insert_to_vdb", response_class=JSONResponse)
 async def insert_image_to_vdb(
@@ -23,7 +20,7 @@ async def insert_image_to_vdb(
 ):
   try: 
     run(model=model_name, vdb=vdb_name, collection_name=collection_name)
-    return JSONResponse(content={"message": "Insertion process started"})
+    return JSONResponse(content={"message": "Insertion proceses completed successfully"})
   except Exception as e:
     logger.error(f"Insertion process failed: {str(e)}")
     raise HTTPException(status_code=500, detail=f"Insertion process failed: {str(e)}")
