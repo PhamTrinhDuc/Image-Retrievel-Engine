@@ -8,9 +8,8 @@ services:
     ports:
       - "9000:9000"  # API port
       - "9001:9001"  # Console port
-    environment:
-      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
-      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
+    env_file:
+      - .env.prod
     command: server /data --console-address ":9001"
     volumes:
       - minio_storage:/data
@@ -52,7 +51,7 @@ services:
       dockerfile: Dockerfile
     image: image-retrieval-backend:latest
     env_file:
-      - .env
+      - .env.prod
     ports:
       - "8000:8000"
     environment:
@@ -69,7 +68,7 @@ services:
       dockerfile: Dockerfile
     image: image-retrieval-frontend:latest
     env_file:
-      - ./frontend/.env
+      - ./frontend/.env.prod
     ports:
       - "8501:8501"
     environment:
