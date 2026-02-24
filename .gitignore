@@ -18,8 +18,8 @@ images/evaluation
 note-command.md
 .env.prod 
 .env.dev
-
-
+volumes
+model_cache
 
 # Distribution / packaging
 .Python

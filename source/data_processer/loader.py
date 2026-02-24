@@ -37,12 +37,12 @@ class DataLoader:
     # ----------------------
     # File discovery
     # ----------------------
-    def get_all_images(self) -> list[str]:
+    def get_all_images(self, max_folder: int=10) -> list[str]:
       list_animals = []
       animal_images = {}
       list_images = []
 
-      for animal in os.listdir(self.source_folder): 
+      for animal in os.listdir(self.source_folder)[:max_folder]: 
         path = os.path.join(self.source_folder, animal)
         animal_path = []
         for img in os.listdir(path):

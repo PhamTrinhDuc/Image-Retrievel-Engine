@@ -6,6 +6,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 import timm
 import torch
 from base.base_embedder import ImageFeatureExtractor
+from configs.helper import DataConfig 
 
 
 class ResNetExtractor(ImageFeatureExtractor): 
@@ -50,6 +51,7 @@ class ResNetExtractor(ImageFeatureExtractor):
         self.logger.info(f"Loading model: {self.model_name}")
         model = timm.create_model(
             model_name=self.model_name, 
+            cache_dir=os.path.join(DataConfig.model_cache_dir, self.model_name),
             pretrained=True, 
             num_classes=0,  # Remove classification head
             global_pool="avg",  # Global average pooling

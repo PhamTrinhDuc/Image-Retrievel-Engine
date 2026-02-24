@@ -142,6 +142,8 @@ def main():
                     extractor_type=selected_model
                 )
 
+                print("Search result:", success, result)  # Debug log
+
                 if success and result.get("success"):
                     st.session_state.search_results = result
                     st.session_state.query_image = image
@@ -168,17 +170,36 @@ def main():
         if similar_images:
             st.subheader(f"Found {len(similar_images)} similar images:")
             
-            # Display results in a grid
-            for i in range(0, len(similar_images), 2):
-                cols = st.columns(2)
+            # Display results in a grid (3 columns)
+            for i in range(0, len(similar_images), 3):
+                cols = st.columns(3)
                 for j, col in enumerate(cols):
                     if i + j < len(similar_images):
                         result = similar_images[i + j]
                         with col:
                             with st.container():
-                                st.markdown(f"**Result {i+j+1}**: {result.get('metadata', '')}")
-                                st.metric("Similarity Score", f"{result.get('similarity_score', 0):.3f}")
-                                st.text(f"ID: {result.get('image_id', 'unknown')}")
+                                # Display image
+                                image_url = result.get('image_path', '')
+                                if image_url:
+                                    try:
+                                        # Replace localhost with BACKEND_HOST for Docker/network compatibility
+                                        image_url = image_url.replace('localhost', BACKEND_HOST)
+                                        
+                                        # Fetch image through requests
+                                        img_response = requests.get(image_url, timeout=10)
+                                        if img_response.status_code == 200:
+                                            img = Image.open(requests.get(image_url, stream=True).raw)
+                                            st.image(img, use_container_width=True)
+                                        else:
+                                            st.warning("Image not found")
+                                    except Exception as e:
+                                        st.error(f"Error loading image: {str(e)}")
+                                        st.text(f"URL: {image_url}")
+                                
+                                # Display metadata
+                                st.markdown(f"**{result.get('metadata', '')}**")
+                                st.metric("Similarity", f"{result.get('similarity_score', 0):.3f}")
+                                st.caption(f"ID: {result.get('image_id', 'unknown')}")
 
         else:
             st.warning("No similar images found")
