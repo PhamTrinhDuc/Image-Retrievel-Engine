@@ -7,7 +7,7 @@ from base.base_vdb import BaseVectorDB
 from .milvus_client import MilvusClient
 
 from dotenv import load_dotenv
-load_dotenv('../../.env.dev')
+load_dotenv('/home/ducpham/workspace/Image-Retrieval-Engine/.env.dev')
 load_dotenv()
 
 MILVUS_HOST = os.getenv("MILVUS_HOST")

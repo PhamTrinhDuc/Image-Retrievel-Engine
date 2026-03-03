@@ -8,12 +8,13 @@ from PIL import Image
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 from utils.helpers import create_logger
+from configs.helper import DataConfig
 from embedder.extractor_factory import EmbedderFactory
 from vector_db.milvus_client import MilvusClient
 
 
 logger = create_logger()
-RESULT_PATH = "./source/validator/results/benchmark_results.json"
+RESULT_PATH = "./source/validator/results/timing.json"
 
 class ModelBenchmark:
     """Simple benchmark for embedding models and search performance"""

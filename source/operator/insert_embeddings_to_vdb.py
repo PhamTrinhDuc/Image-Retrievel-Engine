@@ -5,8 +5,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 from data_processer.minio_client import MinioClient
 from retriever.loader import ImageEmbeddingLoader
-from configs.helper import DataConfig
-import argparse
+from configs.helper import DataConfig, DEFAULT_EXTRACTOR_CONFIGS
 
 BUCKET_NAME = DataConfig.bucket_name
 MINIO_ENDPOINT = DataConfig.minio_endpoint
@@ -78,16 +77,14 @@ def run(model: str,
     raise Exception(f"Error during loading embeddings to VDB: {str(e)}")
   
 if __name__ == "__main__":
-  parser = argparse.ArgumentParser(description="Insert image embeddings to vector database.")
-  parser.add_argument("--model", type=str, default="resnet", help="Model type for embedding extraction.")
-  parser.add_argument("--vdb", type=str, default="milvus", help="Vector database type.")
-  parser.add_argument("--collection_name", type=str, default="images", help="Collection name in vector database.")
-  parser.add_argument("--recreate_collection", action="store_true", help="Recreate collection in vector database.")
+  MODEL = "vit"  # Default model
+  VDB = "milvus"    # Default vector database
+  COLLECTION_NAME = DEFAULT_EXTRACTOR_CONFIGS.get(MODEL).get('collection_name')
 
-  args = parser.parse_args()
-
-  run(model=args.model,
-    vdb=args.vdb,
-    collection_name=args.collection_name,
-    recreate_collection=args.recreate_collection
+  run(model=MODEL,
+    vdb=VDB,
+    collection_name=COLLECTION_NAME,
+    recreate_collection=False
   )
+
+# python -m source.operator.insert_embeddings_to_vdb

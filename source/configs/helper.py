@@ -6,7 +6,8 @@ load_dotenv("../../.env.dev")
 
 @dataclass
 class DataConfig: 
-  data_folder: str = "/mnt/c/Users/Admin/Downloads/archive/animals/animals"
+  raw_data: str = "/mnt/c/Users/Admin/Downloads/archive/raw-img"
+  splitted_data: str = "/home/ducpham/workspace/Image-Retrieval-Engine/splitted_data"
   bucket_name: str = "animal-images"
   model_cache_dir: str = "/home/ducpham/workspace/Image-Retrieval-Engine/model_cache"
   minio_endpoint: str = os.getenv("MINIO_ENDPOINT", "localhost:9000")

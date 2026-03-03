@@ -285,7 +285,7 @@ def main():
     ground_truth = metrics.create_ground_truth_from_folders()
     
     # Collect query images (có thể random sample)
-    data_dir = "images/evaluation/"
+    data_dir = os.path.join(DataConfig.splitted_data, "val")
     query_images = glob.glob(pathname=data_dir + "/*/*.png", recursive=True)
 
     results = evaluator.evaluate_on_dataset(

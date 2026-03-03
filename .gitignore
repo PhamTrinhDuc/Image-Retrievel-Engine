@@ -20,7 +20,7 @@ note-command.md
 .env.dev
 volumes
 model_cache
-
+splitted_data
 # Distribution / packaging
 .Python
 build/

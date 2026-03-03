@@ -5,7 +5,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 from data_processer.loader import DataLoader
 from configs.helper import DataConfig
 
-SOURCE_FOLDER = DataConfig.data_folder
+SOURCE_FOLDER = os.path.join(DataConfig.splitted_data, "train")
 BUCKET_NAME = DataConfig.bucket_name
 MAX_WORKERS = DataConfig.num_workers
 BATCH_SIZE = DataConfig.batch_size
@@ -30,4 +30,6 @@ def main():
   loader.show_bucket_stats()
 
 if __name__ == "__main__":
-    main()
+  main()
+
+  # python -m source.operator.insert_images_to_minio
