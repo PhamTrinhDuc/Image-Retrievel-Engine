@@ -468,43 +468,45 @@ DEFAULT_EXTRACTOR_CONFIGS = {
 
 ### Thiết lập thực nghiệm
 
-- **Dataset**: 10 lớp động vật, 800 ảnh train / 200 ảnh val mỗi lớp (tổng 10.000 train, 2.000 val)
-- **Vector DB**: Milvus, index toàn bộ 8.000 ảnh train
-- **Ground truth**: Toàn bộ ảnh cùng lớp trong MinIO corpus
-- **Metrics**: Precision@K, NDCG@K, mAP (với `top_k=50`, `eval_k_values=[1,5,10,20]`)
+### Experimental Setup
 
-### Chất lượng truy hồi
+- **Dataset**: 10 animal classes, 800 train images / 200 val images per class (total 10,000 train, 2,000 val)
+- **Vector DB**: Milvus, indexing all 8,000 train images
+- **Ground truth**: All images of the same class in MinIO corpus
+- **Metrics**: Precision@K, NDCG@K, mAP (with `top_k=50`, `eval_k_values=[1,5,10,20]`)
 
-| Mô hình  | P@1    | P@5    | P@10   | P@20   | NDCG@1 | NDCG@5 | NDCG@10 | NDCG@20 | mAP   |
+### Retrieval Quality
+
+| Model    | P@1    | P@5    | P@10   | P@20   | NDCG@1 | NDCG@5 | NDCG@10 | NDCG@20 | mAP   |
 |----------|--------|--------|--------|--------|--------|--------|---------|---------|-------|
 | ResNet34 | 97.15% | 96.04% | 95.61% | 95.01% | 97.15% | 96.25% | 95.88%  | 95.37%  | 0.918 |
 | VGG16    | 95.5%  | 94.3%  | 93.9%  | 93.2%  | 95.5%  | 94.6%  | 94.1%   | 93.5%   | 0.901 |
 | ViT-B    | 99.00% | 98.98% | 99.01% | 98.98% | 99.00% | 99.00% | 99.02%  | 98.99%  | 0.985 |
 | DINOv2   | 99.3%  | 99.1%  | 99.1%  | 99.0%  | 99.3%  | 99.2%  | 99.1%   | 99.05%  | 0.991 |
 
-> ResNet34 và ViT-B là số liệu đo thực tế. VGG16 và DINOv2 là ước lượng theo xu hướng kiến trúc.
+> ResNet34 and ViT-B are actual measurements. VGG16 and DINOv2 are estimates based on architectural trends.
 
-**Nhận xét:**
-- ViT-B và DINOv2 vượt trội nhờ kiến trúc Transformer nắm bắt đặc trưng ngữ nghĩa toàn cục tốt hơn CNN.
-- NDCG@K của ResNet34 giảm theo K (97.15% → 95.37%) trong khi ViT-B gần như không đổi, cho thấy ResNet34 có xu hướng đẩy một số kết quả đúng class xuống vị trí thấp hơn – điều mà Precision đơn thuần không bộc lộ được.
-- VGG16 đạt kết quả thấp nhất dù vector 4096 chiều lớn gấp 8 lần ResNet34, xác nhận rằng chiều vector cao không đồng nghĩa với chất lượng đặc trưng tốt hơn.
+**Observations:**
+- ViT-B and DINOv2 excel due to Transformer architecture capturing global semantic features better than CNNs.
+- ResNet34's NDCG@K decreases with K (97.15% → 95.37%), while ViT-B remains nearly constant, showing ResNet34 tends to rank some correct-class results lower—a pattern raw Precision alone cannot reveal.
+- VGG16 achieves the lowest performance despite 4096-dimensional vectors (8× ResNet34), confirming that higher dimensionality does not guarantee better feature quality.
 
-### Hiệu năng thời gian thực (CPU)
+### Real-Time Performance (CPU)
 
-| Mô hình  | Embedding (ms/ảnh) | Search Milvus (ms) | Tổng (ms) | Chiều vector |
-|----------|-------------------|--------------------|-----------|--------------|
-| ResNet34 | 58 ± 2            | 4 ± 1              | 62 ± 3    | 512          |
-| VGG16    | 95 ± 10           | 4 ± 1              | 99 ± 11   | 4096         |
-| ViT-B    | 240 ± 7           | 5 ± 1              | 245 ± 8   | 768          |
-| DINOv2   | 210 ± 10          | 5 ± 1              | 215 ± 11  | 768          |
+| Model    | Embedding (ms/img) | Search Milvus (ms) | Total (ms) | Vector Dim |
+|----------|-------------------|--------------------|-----------|------------|
+| ResNet34 | 58 ± 2            | 4 ± 1              | 62 ± 3    | 512        |
+| VGG16    | 95 ± 10           | 4 ± 1              | 99 ± 11   | 4096       |
+| ViT-B    | 240 ± 7           | 5 ± 1              | 245 ± 8   | 768        |
+| DINOv2   | 210 ± 10          | 5 ± 1              | 215 ± 11  | 768        |
 
-> ResNet34 và ViT-B là số liệu đo thực tế (warm-up run được loại bỏ). VGG16 và DINOv2 là ước lượng.
+> ResNet34 and ViT-B are actual measurements (warm-up runs excluded). VGG16 and DINOv2 are estimates.
 
-**Nhận xét:**
-- Tất cả mô hình đều đáp ứng ngưỡng 1 giây yêu cầu phi chức năng.
-- Thời gian tìm kiếm Milvus ổn định ở 4–5ms bất kể mô hình, không phải nút thắt cổ chai.
-- Hơn 94% tổng độ trễ nằm ở giai đoạn trích xuất embedding – đây là hướng tối ưu ưu tiên.
-- ResNet34 là lựa chọn cân bằng tốt nhất: tốc độ nhanh nhất (62ms) với chất lượng chấp nhận được (mAP 0.918).
+**Observations:**
+- All models meet the 1-second non-functional requirement threshold.
+- Milvus search time is stable at 4–5ms regardless of model and is not a bottleneck.
+- Over 94% of total latency occurs during embedding extraction—the priority optimization target.
+- ResNet34 is the best balanced choice: fastest speed (62ms) with acceptable quality (mAP 0.918).
 
 ### Optimization Tips
 
