@@ -14,13 +14,13 @@ from vector_db.milvus_client import MilvusClient
 
 
 logger = create_logger()
-RESULT_PATH = "./source/validator/results/timing.json"
+RESULT_PATH = "/home/ducpham/workspace/Image-Retrieval-Engine/source/validator/results/benchmark_results.json"
 
 class ModelBenchmark:
     """Simple benchmark for embedding models and search performance"""
     
     def __init__(self):
-        self.extractor_types = ["resnet"]
+        self.extractor_types = ["vit"]
         self.test_images = []
         self.results = {}
     
@@ -122,7 +122,7 @@ class ModelBenchmark:
             
             for i in range(num_searches):
                 # Random query vector
-                query_vector = np.random.random(512)
+                query_vector = np.random.random(768)
                 
                 start_time = time.time()
                 
@@ -170,7 +170,7 @@ class ModelBenchmark:
         embedding_results = self.benchmark_embedding_models(self.test_images)
         
         # Benchmark Milvus search
-        search_results = self.benchmark_milvus_search(collection_name="resnet_embedding")
+        search_results = self.benchmark_milvus_search(collection_name="vit_embedding")
         
         # Store results
         self.results = {

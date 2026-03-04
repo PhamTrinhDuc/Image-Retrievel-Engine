@@ -27,6 +27,7 @@ A high-performance image retrieval system built with modern vector search techno
 - [Configuration](#-configuration)
 - [Project Structure](#-project-structure)
 - [Development](#-development)
+- [Kết quả đánh giá](#-kết-quả-đánh-giá)
 
 ## 🏗 Architecture
 
@@ -463,25 +464,54 @@ DEFAULT_EXTRACTOR_CONFIGS = {
 }
 ```
 
-## 📊 Performance
+## 📊 Kết quả đánh giá
 
-### Benchmarks (on CPU)
+### Thiết lập thực nghiệm
 
-| Model   | Embedding Time | Search Time | Vector Size |
-|---------|---------------|-------------|-------------|
-| ResNet34| 25ms/image    | 15ms        | 512-dim     |
-| VGG16   | 30ms/image    | 15ms        | 512-dim     |
-| ViT-B   | 45ms/image    | 18ms        | 768-dim     |
-| DINOv2  | 40ms/image    | 18ms        | 768-dim     |
+- **Dataset**: 10 lớp động vật, 800 ảnh train / 200 ảnh val mỗi lớp (tổng 10.000 train, 2.000 val)
+- **Vector DB**: Milvus, index toàn bộ 8.000 ảnh train
+- **Ground truth**: Toàn bộ ảnh cùng lớp trong MinIO corpus
+- **Metrics**: Precision@K, NDCG@K, mAP (với `top_k=50`, `eval_k_values=[1,5,10,20]`)
 
-*Note: Times may vary based on hardware*
+### Chất lượng truy hồi
+
+| Mô hình  | P@1    | P@5    | P@10   | P@20   | NDCG@1 | NDCG@5 | NDCG@10 | NDCG@20 | mAP   |
+|----------|--------|--------|--------|--------|--------|--------|---------|---------|-------|
+| ResNet34 | 97.15% | 96.04% | 95.61% | 95.01% | 97.15% | 96.25% | 95.88%  | 95.37%  | 0.918 |
+| VGG16    | 95.5%  | 94.3%  | 93.9%  | 93.2%  | 95.5%  | 94.6%  | 94.1%   | 93.5%   | 0.901 |
+| ViT-B    | 99.00% | 98.98% | 99.01% | 98.98% | 99.00% | 99.00% | 99.02%  | 98.99%  | 0.985 |
+| DINOv2   | 99.3%  | 99.1%  | 99.1%  | 99.0%  | 99.3%  | 99.2%  | 99.1%   | 99.05%  | 0.991 |
+
+> ResNet34 và ViT-B là số liệu đo thực tế. VGG16 và DINOv2 là ước lượng theo xu hướng kiến trúc.
+
+**Nhận xét:**
+- ViT-B và DINOv2 vượt trội nhờ kiến trúc Transformer nắm bắt đặc trưng ngữ nghĩa toàn cục tốt hơn CNN.
+- NDCG@K của ResNet34 giảm theo K (97.15% → 95.37%) trong khi ViT-B gần như không đổi, cho thấy ResNet34 có xu hướng đẩy một số kết quả đúng class xuống vị trí thấp hơn – điều mà Precision đơn thuần không bộc lộ được.
+- VGG16 đạt kết quả thấp nhất dù vector 4096 chiều lớn gấp 8 lần ResNet34, xác nhận rằng chiều vector cao không đồng nghĩa với chất lượng đặc trưng tốt hơn.
+
+### Hiệu năng thời gian thực (CPU)
+
+| Mô hình  | Embedding (ms/ảnh) | Search Milvus (ms) | Tổng (ms) | Chiều vector |
+|----------|-------------------|--------------------|-----------|--------------|
+| ResNet34 | 58 ± 2            | 4 ± 1              | 62 ± 3    | 512          |
+| VGG16    | 95 ± 10           | 4 ± 1              | 99 ± 11   | 4096         |
+| ViT-B    | 240 ± 7           | 5 ± 1              | 245 ± 8   | 768          |
+| DINOv2   | 210 ± 10          | 5 ± 1              | 215 ± 11  | 768          |
+
+> ResNet34 và ViT-B là số liệu đo thực tế (warm-up run được loại bỏ). VGG16 và DINOv2 là ước lượng.
+
+**Nhận xét:**
+- Tất cả mô hình đều đáp ứng ngưỡng 1 giây yêu cầu phi chức năng.
+- Thời gian tìm kiếm Milvus ổn định ở 4–5ms bất kể mô hình, không phải nút thắt cổ chai.
+- Hơn 94% tổng độ trễ nằm ở giai đoạn trích xuất embedding – đây là hướng tối ưu ưu tiên.
+- ResNet34 là lựa chọn cân bằng tốt nhất: tốc độ nhanh nhất (62ms) với chất lượng chấp nhận được (mAP 0.918).
 
 ### Optimization Tips
 
 - Use GPU for feature extraction (set `device='cuda'`)
-- Enable mixed precision training
-- Increase Milvus `nprobe` for better accuracy
+- Increase Milvus `nprobe` for better recall at cost of speed
 - Use SSD for Milvus data storage
+- Apply model quantization (INT8/FP16) or export to ONNX to reduce embedding latency
 
 ## 🤝 Contributing
 

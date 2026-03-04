@@ -12,11 +12,12 @@ import json
 
 from retriever.retriever import ImageRetriever
 from utils.helpers import create_logger
+from loguru import logger
 from configs.helper import DataConfig
 from data_processer.minio_client import MinioClient
 
 
-RESULT_PATH = "./source/validator/results/metrics_results.json"
+RESULT_PATH = "/home/ducpham/workspace/Image-Retrieval-Engine/source/validator/results/metrics_results.json"
 
 minio_client = MinioClient(
   minio_endpoint=DataConfig.minio_endpoint,
@@ -28,7 +29,7 @@ minio_client = MinioClient(
 
 class ImageRetrievalMetrics:
     def __init__(self):
-      self.logger = create_logger()
+      self.logger = logger
         
     def precision_at_k(self, retrieved_ids: List[str], relevant_ids: Set[str], k: int) -> float:
         """
@@ -78,7 +79,75 @@ class ImageRetrievalMetrics:
         relevant_count = sum(1 for item_id in top_k_retrieved if item_id in relevant_ids)
         
         return relevant_count / len(relevant_ids)
-    
+
+    def normalized_recall_at_k(self, retrieved_ids: List[str], relevant_ids: Set[str], k: int) -> float:
+        """
+        Tính Normalized Recall@K
+
+        Recall@K tuyệt đối bị ảnh hưởng bởi class size (số ảnh càng nhiều → recall càng nhỏ).
+        Normalized Recall@K chuẩn hóa theo số ảnh relevant tối đa có thể tìm được trong top-K:
+
+            NRecall@K = recalled / min(K, |relevant|)
+
+        Ý nghĩa: trong số K kết quả mà retriever có thể đúng, tỉ lệ thực sự đúng là bao nhiêu.
+        Giá trị 1.0 đạt được khi tất cả min(K, |relevant|) slot đều là ảnh đúng class.
+
+        Args:
+            retrieved_ids: List các image IDs được retrieve (theo thứ tự ranking)
+            relevant_ids: Set các image IDs relevant với query
+            k: Top-K results để tính normalized recall
+
+        Returns:
+            Normalized Recall@K score (0.0 - 1.0)
+        """
+        if len(relevant_ids) == 0 or k <= 0 or len(retrieved_ids) == 0:
+            return 0.0
+
+        top_k_retrieved = retrieved_ids[:k]
+        relevant_count = sum(1 for item_id in top_k_retrieved if item_id in relevant_ids)
+
+        denominator = min(k, len(relevant_ids))
+        return relevant_count / denominator
+
+    def ndcg_at_k(self, retrieved_ids: List[str], relevant_ids: Set[str], k: int) -> float:
+        """
+        Tính Normalized Discounted Cumulative Gain @ K (NDCG@K)
+
+        NDCG xét đến vị trí ranking: kết quả đúng ở vị trí càng cao được thưởng nhiều hơn.
+        Không bị ảnh hưởng bởi class size do chuẩn hóa theo IDCG (ideal ranking).
+
+            DCG@K  = sum_{i=1}^{K} rel_i / log2(i+1)
+            IDCG@K = sum_{i=1}^{min(K,|R|)} 1 / log2(i+1)   (ideal: top slot đều relevant)
+            NDCG@K = DCG@K / IDCG@K
+
+        Với binary relevance (rel_i = 1 nếu đúng class, 0 nếu không).
+
+        Args:
+            retrieved_ids: List các image IDs được retrieve (theo thứ tự ranking)
+            relevant_ids: Set các image IDs relevant với query
+            k: Top-K results để tính NDCG
+
+        Returns:
+            NDCG@K score (0.0 - 1.0)
+        """
+        if len(relevant_ids) == 0 or k <= 0 or len(retrieved_ids) == 0:
+            return 0.0
+
+        # DCG@K: cộng dồn gain theo vị trí, phần thưởng giảm dần theo log2(i+1)
+        dcg = 0.0
+        for i, item_id in enumerate(retrieved_ids[:k]):
+            if item_id in relevant_ids:
+                dcg += 1.0 / np.log2(i + 2)  # i+2 vì i bắt đầu từ 0, công thức dùng log2(i+1)
+
+        # IDCG@K: ideal case – min(K, |relevant|) vị trí đầu đều là relevant
+        ideal_hits = min(k, len(relevant_ids))
+        idcg = sum(1.0 / np.log2(i + 2) for i in range(ideal_hits))
+
+        if idcg == 0:
+            return 0.0
+
+        return dcg / idcg
+
     def average_precision(self, retrieved_ids: List[str], relevant_ids: Set[str]) -> float:
         """
         Tính Average Precision (AP) cho một query
@@ -105,8 +174,13 @@ class ImageRetrievalMetrics:
         
         if relevant_count == 0:
             return 0.0
-            
-        return precision_sum / len(relevant_ids)
+
+        # Dùng min(|relevant|, top_k) làm mẫu số:
+        # Retriever chỉ trả về tối đa len(retrieved_ids) kết quả,
+        # nên AP=1.0 là đạt được khi tất cả retrieved đều đúng class.
+        # Dùng len(relevant_ids) sẽ penalize oan hệ thống khi class size > top_k.
+        denominator = min(len(relevant_ids), len(retrieved_ids))
+        return precision_sum / denominator
     
     def mean_average_precision(self, query_results: Dict[str, Tuple[List[str], Set[str]]]) -> float:
         """
@@ -148,25 +222,29 @@ class ImageRetrievalMetrics:
         # Tính mAP
         results['mAP'] = self.mean_average_precision(query_results)
         
-        # Tính precision và recall cho từng K
+        # Tính precision, recall, normalized recall và NDCG cho từng K
         for k in k_values:
             precision_scores = []
             recall_scores = []
-            
+            nrecall_scores = []
+            ndcg_scores = []
+
             for query_id, (retrieved_ids, relevant_ids) in query_results.items():
-                # print(f"Top {k}: {query_id}")
-                # print(f"Retrieved IDs: {retrieved_ids[:k]}")
-                # print(f"Relevant IDs: {relevant_ids}")
-                # print("-----" * 50)
                 prec_k = self.precision_at_k(retrieved_ids, relevant_ids, k)
                 rec_k = self.recall_at_k(retrieved_ids, relevant_ids, k)
-                
+                nrec_k = self.normalized_recall_at_k(retrieved_ids, relevant_ids, k)
+                ndcg_k = self.ndcg_at_k(retrieved_ids, relevant_ids, k)
+
                 precision_scores.append(prec_k)
                 recall_scores.append(rec_k)
-            
+                nrecall_scores.append(nrec_k)
+                ndcg_scores.append(ndcg_k)
+
             # Trung bình tất cả queries
             results[f'Precision@{k}'] = np.mean(precision_scores) if precision_scores else 0.0
             results[f'Recall@{k}'] = np.mean(recall_scores) if recall_scores else 0.0
+            results[f'NRecall@{k}'] = np.mean(nrecall_scores) if nrecall_scores else 0.0
+            results[f'NDCG@{k}'] = np.mean(ndcg_scores) if ndcg_scores else 0.0
         
         return results
     
@@ -200,7 +278,7 @@ class Evaluator:
                  metrics_calculator: ImageRetrievalMetrics):
         self.retriever = retriever
         self.metrics = metrics_calculator
-        self.logger = create_logger("evaluator")
+        self.logger = create_logger()
         
     def evaluate_on_dataset(self, 
                            query_images: List[str], 
@@ -241,7 +319,10 @@ class Evaluator:
                 basename_query = query_img.split("/")[-2]  # Lấy tên folder cha của ảnh
                 relevant_basename = ground_truth.get(basename_query, set())
 
-                query_results[basename_query] = (retrieved_basename, relevant_basename)
+                # Dùng query_img (đường dẫn đầy đủ, unique) làm key thay vì basename_query.
+                # Nếu dùng basename_query, nhiều ảnh val cùng class sẽ overwrite nhau
+                # → evaluation chỉ tính 1 query/class thay vì toàn bộ.
+                query_results[query_img] = (retrieved_basename, relevant_basename)
 
                 if (i + 1) % 10 == 0:
                     self.logger.info(f"Processed {i + 1}/{len(query_images)} queries")
@@ -287,7 +368,10 @@ def main():
     # Collect query images (có thể random sample)
     data_dir = os.path.join(DataConfig.splitted_data, "val")
     query_images = glob.glob(pathname=data_dir + "/*/*.png", recursive=True)
+    query_images += glob.glob(pathname=data_dir + "/*/*.jpg", recursive=True)
+    query_images += glob.glob(pathname=data_dir + "/*/*.jpeg", recursive=True)
 
+    print(f"Total query images: {len(query_images)}")
     results = evaluator.evaluate_on_dataset(
         query_images=query_images,
         ground_truth=ground_truth,
